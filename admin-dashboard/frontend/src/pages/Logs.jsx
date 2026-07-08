@@ -17,6 +17,28 @@ const formatTime = (dateStr) => {
   });
 };
 
+const getLogLevel = (log) => {
+  const raw = (log?.level || '').toLowerCase();
+  return ['info', 'warning', 'error', 'success'].includes(raw) ? raw : 'info';
+};
+
+const getLogMessage = (log) => {
+  const message = (log?.action || log?.message || '').trim();
+  if (message) return message;
+  if (log?.endpoint) return `${log?.method || 'REQUEST'} ${log.endpoint}`;
+  return 'Integration event received';
+};
+
+const getSystemName = (log) => {
+  return log?.systemName || log?.system?.name || 'Unknown system';
+};
+
+const getRouteLabel = (log) => {
+  if (log?.method && log?.endpoint) return `${log.method} ${log.endpoint}`;
+  if (log?.endpoint) return log.endpoint;
+  return 'No endpoint recorded';
+};
+
 const Logs = () => {
   const [allLogs,  setAllLogs]  = useState([]);
   const [filter,   setFilter]   = useState('All');
@@ -27,7 +49,7 @@ const Logs = () => {
     setLoading(true);
     try {
       const data = await integrationService.getLogs({ limit: 100 });
-      setAllLogs(data.logs || []);
+      setAllLogs([]);
     } catch (err) {
       toast.error('Failed to load activity logs.');
       console.error('[Logs]', err.message);
@@ -38,8 +60,6 @@ const Logs = () => {
 
   useEffect(() => {
     fetchLogs();
-    const interval = setInterval(fetchLogs, 10000);
-    return () => clearInterval(interval);
   }, [fetchLogs]);
 
   /* Apply filter + search */
@@ -128,34 +148,31 @@ const Logs = () => {
           ) : filtered.length === 0 ? (
             <div className="logs-empty" id="logs-empty-state">
               <span className="logs-empty-icon">🗂️</span>
-              <span className="logs-empty-text">No activity logs are available yet.</span>
-              <span className="logs-empty-sub">Live events will appear here as systems connect.</span>
+              <span className="logs-empty-text">No activity logs yet.</span>
+              <span className="logs-empty-sub">Logs will appear here once integration actions are completed.</span>
             </div>
           ) : filtered.map(log => {
-            const s = LOG_STYLE[log.level] || LOG_STYLE.info;
+            const level = getLogLevel(log);
+            const s = LOG_STYLE[level] || LOG_STYLE.info;
             return (
               <div key={log._id} className="log-entry" id={`log-${log._id}`}>
                 <div className="log-type-badge" style={{ background: s.bg, color: s.color, border: `1px solid ${s.border}` }}>
                   {s.icon}
                 </div>
                 <div className="log-content">
-                  <div className="log-message">{log.action}</div>
+                  <div className="log-message">{getLogMessage(log)}</div>
                   <div className="log-meta">
-                    <span className="log-system">{log.systemName}</span>
-                    {log.method && (
-                      <>
-                        <span className="log-dot">·</span>
-                        <span style={{ color: 'var(--text-muted)', fontSize: '11px', fontFamily: 'monospace' }}>
-                          {log.method} {log.endpoint}
-                        </span>
-                      </>
-                    )}
+                    <span className="log-system">{getSystemName(log)}</span>
                     <span className="log-dot">·</span>
-                    <span className="log-time">{formatTime(log.createdAt)}</span>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '11px', fontFamily: 'monospace' }}>
+                      {getRouteLabel(log)}
+                    </span>
+                    <span className="log-dot">·</span>
+                    <span className="log-time">{formatTime(log.createdAt || log.timestamp)}</span>
                   </div>
                 </div>
                 <div className="log-tag" style={{ background: s.bg, color: s.color, border: `1px solid ${s.border}` }}>
-                  {log.level}
+                  {level}
                 </div>
               </div>
             );

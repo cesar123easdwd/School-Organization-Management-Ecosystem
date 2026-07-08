@@ -37,6 +37,13 @@ const integrationLogSchema = new mongoose.Schema(
       trim:     true,
     },
 
+    // Display-friendly message for the frontend feed
+    message: {
+      type:     String,
+      trim:     true,
+      default:  "",
+    },
+
     // "success" | "warning" | "error" | "info"
     level: {
       type:    String,

@@ -13,17 +13,24 @@ const authenticateSystem = async (apiKey) => {
 };
 
 /* ─── Helper: write an integration log entry ───────────────────── */
-const writeLog = async ({ system, method, endpoint, action, level, statusCode, meta, ip }) => {
+const writeLog = async ({ system, method, endpoint, action, message, level, statusCode, meta, ip }) => {
   try {
+    const safeMethod = method || "POST";
+    const safeEndpoint = endpoint || "/api/integration/unknown";
+    const safeAction = (action || message || "").trim() || `Integration event received via ${safeEndpoint}`;
+    const safeLevel = (level || "info").toLowerCase();
+    const safeLevelValue = ["success", "warning", "error", "info"].includes(safeLevel) ? safeLevel : "info";
+
     await IntegrationLog.create({
       system:     system?._id,
-      systemName: system?.name ?? "Unknown",
-      method,
-      endpoint,
-      action,
-      level,
-      statusCode,
-      meta,
+      systemName: system?.name ?? "Unknown system",
+      method:     safeMethod,
+      endpoint:   safeEndpoint,
+      action:     safeAction,
+      message:    message || safeAction,
+      level:      safeLevelValue,
+      statusCode: statusCode || 200,
+      meta:       meta || {},
       ip,
     });
   } catch (_) {
@@ -142,7 +149,20 @@ const getLogs = async (req, res) => {
       .limit(limit)
       .populate("system", "name module");
 
-    res.status(200).json({ success: true, count: logs.length, logs });
+    const normalizedLogs = logs.map((log) => {
+      const plain = log.toObject ? log.toObject() : log;
+      return {
+        ...plain,
+        message: plain.message || plain.action || "Integration event received",
+        systemName: plain.systemName || plain.system?.name || "Unknown system",
+        method: plain.method || "POST",
+        endpoint: plain.endpoint || "/api/integration/unknown",
+        level: (plain.level || "info").toLowerCase(),
+        createdAt: plain.createdAt || plain.timestamp || new Date(),
+      };
+    });
+
+    res.status(200).json({ success: true, count: normalizedLogs.length, logs: normalizedLogs });
   } catch (error) {
     console.error("[integrationController.getLogs]", error.message);
     res.status(500).json({ success: false, message: "Failed to fetch logs." });

@@ -1,12 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   AreaChart, Area,
   BarChart, Bar,
   PieChart, Pie, Cell, Tooltip as PieTooltip, Legend,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
-import dashboardService from '../services/dashboardService';
-import toast from 'react-hot-toast';
 import useAuth from '../hooks/useAuth';
 
 /* ── Constants ────────────────────────────────────────────────────── */
@@ -95,37 +93,21 @@ const Dashboard = () => {
   const greeting  = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
   const firstName = user?.name?.split(' ')[0] || 'Admin';
 
-  const [data,    setData]    = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchAll = useCallback(async () => {
-    setLoading(true);
-    try {
-      const dash = await dashboardService.getStats();
-      setData(dash);
-    } catch (err) {
-      toast.error('Failed to load dashboard data.');
-      console.error('[Dashboard]', err.message);
-    } finally {
-      setLoading(false);
-    }
+  useEffect(() => {
+    const timer = setTimeout(() => setLoading(false), 200);
+    return () => clearTimeout(timer);
   }, []);
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  const stats   = {};
+  const charts  = {};
+  const systems = [];
+  const logs    = [];
 
-  useEffect(() => {
-    const interval = setInterval(fetchAll, 10000);
-    return () => clearInterval(interval);
-  }, [fetchAll]);
-
-  const stats   = data?.stats   || {};
-  const charts  = data?.charts  || {};
-  const systems = data?.systems || [];
-  const logs    = data?.recentLogs || [];
-
-  const monthly     = charts.monthly     || [];
-  const sanctionPie = charts.sanctionPie || [];
-  const logLevels   = charts.logLevels   || [];
+  const monthly     = [];
+  const sanctionPie = [];
+  const logLevels   = [];
 
   return (
     <main className="page-body" id="dashboard-page" role="main">
@@ -135,7 +117,7 @@ const Dashboard = () => {
         <h1>
           {greeting}, <span style={{ color: '#7f1416' }}>{firstName}</span> 👋
         </h1>
-        <p>Here's your organization overview for today.</p>
+        <p>No integration data has been recorded yet.</p>
         <div className="dashboard-meta">
           <span>🕐 {new Date().toLocaleString('en-PH', { weekday: 'long', month: 'long', day: 'numeric' })}</span>
           {stats.todayActivity > 0 && (
@@ -147,34 +129,34 @@ const Dashboard = () => {
       {/* ── Stat Cards ──────────────────────────────────────────── */}
       <div className="stats-grid">
         <StatCard loading={loading} icon="👥" label="Total Members"       color="#7f1416"
-          value={loading ? '…' : (stats.totalMembers || 0).toLocaleString()}
-          sub="Registered in the system"
-          trend={stats.totalMembers > 0 ? `${stats.totalMembers} active` : null}
+          value={loading ? '…' : '—'}
+          sub="No data yet"
+          trend={null}
           trendUp={true} />
         <StatCard loading={loading} icon="🔗" label="Online Systems"      color="#06b6d4"
-          value={loading ? '…' : `${stats.onlineSystems ?? 0} / ${systems.length}`}
-          sub="Sub-systems connected"
-          trend={stats.onlineSystems > 0 ? `${stats.onlineSystems} live` : null}
+          value={loading ? '…' : '—'}
+          sub="No data yet"
+          trend={null}
           trendUp={true} />
         <StatCard loading={loading} icon="💰" label="Collected Sanctions" color="#22c55e"
-          value={loading ? '…' : `₱${(stats.collectedSanctions || 0).toLocaleString()}`}
-          sub="Total payments received"
-          trend={stats.todayTransactions > 0 ? `+${stats.todayTransactions} today` : null}
+          value={loading ? '…' : '—'}
+          sub="No data yet"
+          trend={null}
           trendUp={true} />
         <StatCard loading={loading} icon="⚠️" label="Unpaid Sanctions"   color="#f59e0b"
-          value={loading ? '…' : `₱${(stats.unpaidSanctions || 0).toLocaleString()}`}
-          sub="Outstanding penalties"
-          trend={stats.unpaidSanctions > 0 ? 'Needs collection' : 'All clear'}
-          trendUp={stats.unpaidSanctions === 0} />
+          value={loading ? '…' : '—'}
+          sub="No data yet"
+          trend={null}
+          trendUp={true} />
       </div>
 
       {/* ── Secondary KPI Row ───────────────────────────────────── */}
       <div className="mini-stats-row">
         {[
-          { icon: '📅', label: 'Events Logged',      value: stats.totalEvents        ?? 0 },
-          { icon: '📋', label: 'Total Transactions',  value: stats.totalTransactions  ?? 0 },
-          { icon: '⚡', label: "Today's Activity",    value: stats.todayActivity      ?? 0 },
-          { icon: '🖥', label: 'Systems Registered',  value: systems.length },
+          { icon: '📅', label: 'Events Logged',      value: '—' },
+          { icon: '📋', label: 'Total Transactions',  value: '—' },
+          { icon: '⚡', label: "Today's Activity",    value: '—' },
+          { icon: '🖥', label: 'Systems Registered',  value: '—' },
         ].map(k => (
           <div key={k.label} className="mini-stat-card">
             <div className="mini-stat-value">
@@ -193,7 +175,7 @@ const Dashboard = () => {
           title="Monthly Sanctions Overview"
           subtitle="Last 6 months — collected vs outstanding (₱)"
           action={
-            <button type="button" onClick={fetchAll} className="btn-ghost">
+            <button type="button" className="btn-ghost" disabled>
               ↻ Refresh
             </button>
           }
@@ -226,7 +208,7 @@ const Dashboard = () => {
           {sanctionPie.length === 0 ? (
             <div className="empty-state" style={{ height: 220 }}>
               <span style={{ fontSize: '28px' }}>📊</span>
-              <span>No live sanction transactions are available yet.</span>
+              <span>No sanction records yet.</span>
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={220}>
@@ -256,7 +238,7 @@ const Dashboard = () => {
           {logLevels.length === 0 ? (
             <div className="empty-state" style={{ height: 200 }}>
               <span style={{ fontSize: '28px' }}>📋</span>
-              <span>No live activity logs are available yet.</span>
+              <span>No activity logs yet.</span>
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={200}>
@@ -320,7 +302,7 @@ const Dashboard = () => {
           {logs.length === 0 ? (
             <div className="empty-state">
               <span style={{ fontSize: '32px', display: 'block', marginBottom: '8px' }}>🗂️</span>
-              No live activity logs are available yet. Events will appear once connected systems send data.
+              No activity logs yet. They will appear here once integration actions are completed.
             </div>
           ) : logs.map((log, i) => {
             const colors = { success: '#22c55e', info: '#7f1416', warning: '#f59e0b', error: '#ef4444' };

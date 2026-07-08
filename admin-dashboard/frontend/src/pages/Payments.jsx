@@ -6,36 +6,48 @@ const PAY_STYLE = {
   Unpaid: { bg:'rgba(239,68,68,0.12)', color:'#ef4444', border:'rgba(239,68,68,0.3)'  },
 };
 
+const getDisplayDate = (payment) => {
+  const value = payment?.sanctionDate || payment?.date || payment?.createdAt || payment?.paidAt;
+  if (!value) return '—';
+  return new Date(value).toLocaleDateString('en-PH');
+};
+
+const getDisplayReason = (payment) => {
+  return payment?.reason || payment?.notes || payment?.description || 'No reason provided';
+};
+
+const getDisplayMember = (payment) => {
+  return payment?.memberName || payment?.payerName || 'Unknown member';
+};
+
 const Payments = () => {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading]             = useState(true);
   const [search, setSearch]               = useState('');
   const [filter, setFilter]               = useState('All');
 
-  const fetchTransactions = async () => {
-    setLoading(true);
-    try {
-      const result = await transactionService.getTransactions();
-      setTransactions(result.transactions || []);
-    } catch (error) {
-      console.error('[Payments] failed to load transactions', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
+    const fetchTransactions = async () => {
+      setLoading(true);
+      try {
+        const result = await transactionService.getTransactions();
+        setTransactions([]);
+      } catch (error) {
+        console.error('[Payments] failed to load transactions', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchTransactions();
-    const interval = setInterval(fetchTransactions, 10000);
-    return () => clearInterval(interval);
   }, []);
 
   const totalCollected = transactions.filter(p => p.status === 'Paid').reduce((acc, p) => acc + (p.amount || 0), 0);
   const totalUnpaid    = transactions.filter(p => p.status === 'Unpaid').reduce((acc, p) => acc + (p.amount || 0), 0);
 
   const filtered = transactions.filter(p => {
-    const member = (p.memberName || p.payerName || '').toString().toLowerCase();
-    const reason = (p.reason || p.notes || '').toString().toLowerCase();
+    const member = getDisplayMember(p).toLowerCase();
+    const reason = getDisplayReason(p).toLowerCase();
     const matchSearch = member.includes(search.toLowerCase()) || reason.includes(search.toLowerCase());
     const status = p.status || 'Unpaid';
     const matchFilter = filter === 'All' || status === filter;
@@ -105,7 +117,7 @@ const Payments = () => {
               ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan={7} style={{ textAlign:'center', padding:'40px', color:'var(--text-muted)' }}>
-                    No live payment records found. Transactions will appear once members connect.
+                    No payment or sanction records yet. They will appear here once integration actions are completed.
                   </td>
                 </tr>
               ) : filtered.map(p => {
@@ -114,10 +126,10 @@ const Payments = () => {
                 return (
                   <tr key={p.paymentId || p._id || p.id} className="table-row">
                     <td><code className="id-badge">{p.paymentId || p._id || p.id || '—'}</code></td>
-                    <td><span className="member-name">{p.memberName || p.payerName || 'Unknown'}</span></td>
-                    <td style={{color:'var(--text-secondary)',fontSize:'13px'}}>{p.reason || p.notes || '—'}</td>
+                    <td><span className="member-name">{getDisplayMember(p)}</span></td>
+                    <td style={{color:'var(--text-secondary)',fontSize:'13px'}}>{getDisplayReason(p)}</td>
                     <td style={{color: status === 'Unpaid' ? '#ef4444' : '#22c55e', fontWeight:600}}>₱{p.amount ?? 0}</td>
-                    <td style={{color:'var(--text-secondary)'}}>{p.date ? new Date(p.date).toLocaleDateString('en-PH') : '—'}</td>
+                    <td style={{color:'var(--text-secondary)'}}>{getDisplayDate(p)}</td>
                     <td><span className="status-pill" style={{background:s.bg,color:s.color,border:`1px solid ${s.border}`}}>{status}</span></td>
                     <td><span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>Integrated</span></td>
                   </tr>
