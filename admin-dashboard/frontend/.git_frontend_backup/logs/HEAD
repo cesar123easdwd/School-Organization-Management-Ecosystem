@@ -1,0 +1,4 @@
+0000000000000000000000000000000000000000 2487d205136a95872bd0a309fbe26faf9976fe25 cesar123easdwd <cesarliwag11@gmail.com> 1782736705 +0800	commit (initial): Initialize project using Create React App
+2487d205136a95872bd0a309fbe26faf9976fe25 3a857bbd33e1aa7e92297208e607ced811781da9 cesar123easdwd <cesarliwag11@gmail.com> 1782737017 +0800	commit: feat: initialize admin dashboard frontend structure with layout components, core pages, and API service integration
+3a857bbd33e1aa7e92297208e607ced811781da9 3a857bbd33e1aa7e92297208e607ced811781da9 cesar123easdwd <cesarliwag11@gmail.com> 1782737363 +0800	checkout: moving from master to master
+3a857bbd33e1aa7e92297208e607ced811781da9 3f366c8cb8f841d923fb128a27cf5f7c87d164bf cesar123easdwd <cesarliwag11@gmail.com> 1783264307 +0800	commit: feat: initialize admin dashboard frontend with sidebar navigation and core management pages
