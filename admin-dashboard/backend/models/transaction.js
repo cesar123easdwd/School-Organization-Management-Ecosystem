@@ -80,11 +80,10 @@ const transactionSchema = new mongoose.Schema(
 );
 
 /* ─── Auto-generate paymentId before first save ────────────────── */
-transactionSchema.pre("save", async function (next) {
-  if (this.paymentId) return next(); // already set
+transactionSchema.pre("save", async function () {
+  if (this.paymentId) return; // already set
   const count = await mongoose.model("Transaction").countDocuments();
   this.paymentId = `PAY-${String(count + 1).padStart(3, "0")}`;
-  next();
 });
 
 module.exports = mongoose.model("Transaction", transactionSchema);

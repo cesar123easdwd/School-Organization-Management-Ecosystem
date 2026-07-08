@@ -77,8 +77,8 @@ const updateSystem = async (req, res) => {
     allowed.forEach((k) => { if (req.body[k] !== undefined) updates[k] = req.body[k]; });
 
     const system = await System.findByIdAndUpdate(req.params.id, updates, {
-      new:           true,
-      runValidators: true,
+      returnDocument: "after",
+      runValidators:  true,
     });
 
     if (!system) return res.status(404).json({ success: false, message: "System not found." });

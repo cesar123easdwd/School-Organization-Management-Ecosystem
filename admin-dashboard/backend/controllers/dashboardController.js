@@ -5,52 +5,140 @@ const User           = require("../models/users");
 
 /* ══════════════════════════════════════════════════════════════════
    GET /api/dashboard/stats
-   Returns the four summary numbers shown in the stat cards.
+   Returns:
+     - 4 summary stats (stat cards)
+     - Recent activity logs
+     - Monthly transaction chart data (last 6 months)
+     - Sanction status breakdown (pie chart)
+     - Integration log level breakdown (bar chart)
+     - System uptime summary
    ══════════════════════════════════════════════════════════════════ */
 const getStats = async (req, res) => {
   try {
-    // These counts will grow as teammate sub-systems push data in.
-    // For now the dashboard reads from its own Transaction collection.
+    /* ── Core stat card numbers ──────────────────────────────────── */
     const [
-      totalMembers,       // will come from Member Registration sub-system later
+      totalMembers,
       onlineSystems,
       collectedTotal,
       unpaidTotal,
       recentLogs,
+      allSystems,
     ] = await Promise.all([
-      // Placeholder until the Members collection is wired in from sub-system
-      User.countDocuments({ role: { $ne: "superadmin" } }),
+      // Member count from push-member integration logs
+      IntegrationLog.distinct("meta.memberId", { endpoint: "/api/integration/push-member" })
+        .then(ids => ids.filter(Boolean).length)
+        .catch(() => 0),
 
       System.countDocuments({ status: "online" }),
 
-      // Sum of all Paid transactions
       Transaction.aggregate([
         { $match: { status: "Paid" } },
         { $group: { _id: null, total: { $sum: "$amount" } } },
       ]),
 
-      // Sum of all Unpaid transactions
       Transaction.aggregate([
         { $match: { status: "Unpaid" } },
         { $group: { _id: null, total: { $sum: "$amount" } } },
       ]),
 
-      // Last 5 log entries for the activity feed
       IntegrationLog.find()
         .sort({ createdAt: -1 })
-        .limit(5)
+        .limit(8)
         .populate("system", "name"),
+
+      System.find().select("name status module lastSeen"),
     ]);
+
+    /* ── Monthly transactions chart (last 6 months) ──────────────── */
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
+    sixMonthsAgo.setDate(1);
+    sixMonthsAgo.setHours(0, 0, 0, 0);
+
+    const monthlyTransactions = await Transaction.aggregate([
+      { $match: { createdAt: { $gte: sixMonthsAgo } } },
+      {
+        $group: {
+          _id: {
+            year:  { $year:  "$createdAt" },
+            month: { $month: "$createdAt" },
+          },
+          collected: { $sum: { $cond: [{ $eq: ["$status", "Paid"]   }, "$amount", 0] } },
+          unpaid:    { $sum: { $cond: [{ $eq: ["$status", "Unpaid"] }, "$amount", 0] } },
+          count:     { $sum: 1 },
+        },
+      },
+      { $sort: { "_id.year": 1, "_id.month": 1 } },
+    ]);
+
+    // Fill in months with no data so the chart has a continuous axis
+    const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const chartMonths = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date();
+      d.setMonth(d.getMonth() - i);
+      chartMonths.push({ year: d.getFullYear(), month: d.getMonth() + 1, label: MONTHS[d.getMonth()] });
+    }
+
+    const monthlyChart = chartMonths.map(m => {
+      const found = monthlyTransactions.find(t => t._id.year === m.year && t._id.month === m.month);
+      return {
+        month:     m.label,
+        collected: found?.collected ?? 0,
+        unpaid:    found?.unpaid    ?? 0,
+        total:     found?.count     ?? 0,
+      };
+    });
+
+    /* ── Sanction status pie chart ───────────────────────────────── */
+    const sanctionPie = await Transaction.aggregate([
+      { $group: { _id: "$status", value: { $sum: 1 }, amount: { $sum: "$amount" } } },
+    ]);
+
+    /* ── Integration log level breakdown (bar chart) ─────────────── */
+    const logLevels = await IntegrationLog.aggregate([
+      { $group: { _id: "$level", count: { $sum: 1 } } },
+    ]);
+
+    /* ── Recent activity (last 24h) count ────────────────────────── */
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const recentActivityCount = await IntegrationLog.countDocuments({ createdAt: { $gte: oneDayAgo } });
+
+    /* ── Total events and members from logs ──────────────────────── */
+    const totalEvents = await IntegrationLog.countDocuments({ endpoint: "/api/integration/push-event" });
+
+    const totalTransactions = await Transaction.countDocuments();
+    const todayTransactions = await Transaction.countDocuments({ createdAt: { $gte: oneDayAgo } });
 
     res.status(200).json({
       success: true,
+
       stats: {
-        totalMembers,
+        totalMembers:       await IntegrationLog.distinct("meta.firstName", { endpoint: "/api/integration/push-member" }).then(a => a.filter(Boolean).length).catch(() => 0),
         onlineSystems,
         collectedSanctions: collectedTotal[0]?.total ?? 0,
-        unpaidSanctions:    unpaidTotal[0]?.total   ?? 0,
+        unpaidSanctions:    unpaidTotal[0]?.total    ?? 0,
+        totalEvents,
+        totalTransactions,
+        todayActivity:      recentActivityCount,
+        todayTransactions,
       },
+
+      systems:     allSystems,
       recentLogs,
+
+      charts: {
+        monthly:     monthlyChart,
+        sanctionPie: sanctionPie.map(s => ({
+          name:   s._id || "Unknown",
+          value:  s.value,
+          amount: s.amount,
+        })),
+        logLevels: logLevels.map(l => ({
+          level: l._id,
+          count: l.count,
+        })),
+      },
     });
 
   } catch (error) {

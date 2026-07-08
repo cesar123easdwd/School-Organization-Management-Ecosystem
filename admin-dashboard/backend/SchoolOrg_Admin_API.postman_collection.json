@@ -1,0 +1,342 @@
+{
+  "info": {
+    "name": "School Org Admin API",
+    "description": "Complete API collection for the School Organization Management Ecosystem — Admin Dashboard.\n\nInstructions:\n1. Import this file into Postman\n2. Set the `baseUrl` variable to http://localhost:5000/api\n3. Run 'Auth / Login' first to auto-populate the `token` variable\n4. All protected routes will automatically use the token",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl",    "value": "http://localhost:5000/api", "type": "string" },
+    { "key": "token",      "value": "",                          "type": "string" },
+    { "key": "memberKey",  "value": "sk_39cbeaea5f83769b592adb03ba800af502726f7c2f88de35", "type": "string" },
+    { "key": "eventsKey",  "value": "sk_8ecd1a0773d0560d760a627f1264bd9bc01c550d14413086", "type": "string" },
+    { "key": "attendKey",  "value": "sk_33794c5b22a7f9bcac98d52a3222ea59f1c827bca0f16ec1", "type": "string" },
+    { "key": "payKey",     "value": "sk_97fb1302de285120dd9c85cd7e7118db6df71af558f52b90", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "🔐 Auth",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.token) {",
+                  "  pm.collectionVariables.set('token', res.token);",
+                  "  console.log('Token saved automatically.');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@schoolorg.com\",\n  \"password\": \"Admin12345\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] },
+            "description": "Authenticate as admin. Token is automatically saved to the `token` variable."
+          }
+        },
+        {
+          "name": "Get My Profile",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/auth/me", "host": ["{{baseUrl}}"], "path": ["auth", "me"] },
+            "description": "Returns the currently authenticated admin's profile."
+          }
+        },
+        {
+          "name": "Get All Admin Users",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/auth/users", "host": ["{{baseUrl}}"], "path": ["auth", "users"] }
+          }
+        },
+        {
+          "name": "Register New Admin (Superadmin only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\":     \"New Admin\",\n  \"email\":    \"newadmin@schoolorg.com\",\n  \"password\": \"Password123\",\n  \"role\":     \"admin\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] }
+          }
+        },
+        {
+          "name": "Deactivate User (Superadmin only)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/auth/users/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "users", ":id"],
+              "variable": [{ "key": "id", "value": "USER_ID_HERE" }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📊 Dashboard",
+      "item": [
+        {
+          "name": "Get Dashboard Stats",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/dashboard/stats", "host": ["{{baseUrl}}"], "path": ["dashboard", "stats"] },
+            "description": "Returns totalMembers, onlineSystems, collectedSanctions, unpaidSanctions, and recentLogs."
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔗 Systems",
+      "item": [
+        {
+          "name": "Get All Systems",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/systems", "host": ["{{baseUrl}}"], "path": ["systems"] }
+          }
+        },
+        {
+          "name": "Register New System (Superadmin only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\":        \"New Sub-system\",\n  \"description\": \"Description here\",\n  \"module\":      \"other\",\n  \"baseUrl\":     \"http://localhost:5005\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/systems", "host": ["{{baseUrl}}"], "path": ["systems"] },
+            "description": "Creates a new system. Returns the API key ONCE — copy and save it."
+          }
+        },
+        {
+          "name": "Update System",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"online\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/systems/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["systems", ":id"],
+              "variable": [{ "key": "id", "value": "SYSTEM_ID_HERE" }]
+            }
+          }
+        },
+        {
+          "name": "Delete System (Superadmin only)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/systems/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["systems", ":id"],
+              "variable": [{ "key": "id", "value": "SYSTEM_ID_HERE" }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔄 Integration — Admin",
+      "item": [
+        {
+          "name": "Get Integration Logs",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/integration/logs?limit=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["integration", "logs"],
+              "query": [
+                { "key": "limit", "value": "50" },
+                { "key": "level", "value": "", "disabled": true },
+                { "key": "system", "value": "", "disabled": true }
+              ]
+            },
+            "description": "Returns recent integration activity from all sub-systems. Filter by level (info/warning/error/success) or system name."
+          }
+        }
+      ]
+    },
+    {
+      "name": "👤 Integration — John Paul (Member Registration)",
+      "item": [
+        {
+          "name": "PING — Announce Online",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"apiKey\": \"{{memberKey}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/integration/ping", "host": ["{{baseUrl}}"], "path": ["integration", "ping"] },
+            "description": "Call this once when your backend server starts."
+          }
+        },
+        {
+          "name": "Push Member",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-api-key",    "value": "{{memberKey}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"memberId\":  \"MBR-001\",\n  \"firstName\": \"Maria\",\n  \"lastName\":  \"Santos\",\n  \"email\":     \"maria.santos@email.com\",\n  \"course\":    \"BSIT\",\n  \"year\":      2,\n  \"status\":    \"Active\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/integration/push-member", "host": ["{{baseUrl}}"], "path": ["integration", "push-member"] },
+            "description": "Call this whenever a member is created or updated in your system."
+          }
+        }
+      ]
+    },
+    {
+      "name": "📅 Integration — Timothy (Events Management)",
+      "item": [
+        {
+          "name": "PING — Announce Online",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"apiKey\": \"{{eventsKey}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/integration/ping", "host": ["{{baseUrl}}"], "path": ["integration", "ping"] }
+          }
+        },
+        {
+          "name": "Push Event",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-api-key",    "value": "{{eventsKey}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\":     \"EVT-001\",\n  \"title\":       \"Foundation Day\",\n  \"description\": \"Annual school organization foundation day celebration.\",\n  \"location\":    \"Main Auditorium\",\n  \"date\":        \"2026-07-15\",\n  \"organizer\":   \"Events Committee\",\n  \"status\":      \"Upcoming\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/integration/push-event", "host": ["{{baseUrl}}"], "path": ["integration", "push-event"] },
+            "description": "Call this when an event is created or updated."
+          }
+        }
+      ]
+    },
+    {
+      "name": "✅ Integration — Luis (Attendance Management)",
+      "item": [
+        {
+          "name": "PING — Announce Online",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"apiKey\": \"{{attendKey}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/integration/ping", "host": ["{{baseUrl}}"], "path": ["integration", "ping"] }
+          }
+        },
+        {
+          "name": "Push Attendance (Present)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-api-key",    "value": "{{attendKey}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\":    \"EVT-001\",\n  \"eventTitle\": \"Foundation Day\",\n  \"memberId\":   \"MBR-001\",\n  \"memberName\": \"Maria Santos\",\n  \"status\":     \"Present\",\n  \"remarks\":    \"\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/integration/push-attendance", "host": ["{{baseUrl}}"], "path": ["integration", "push-attendance"] }
+          }
+        },
+        {
+          "name": "Push Attendance (Absent — auto-creates ₱50 sanction)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-api-key",    "value": "{{attendKey}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\":    \"EVT-001\",\n  \"eventTitle\": \"Foundation Day\",\n  \"memberId\":   \"MBR-002\",\n  \"memberName\": \"Juan dela Cruz\",\n  \"status\":     \"Absent\",\n  \"remarks\":    \"No excuse letter submitted\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/integration/push-attendance", "host": ["{{baseUrl}}"], "path": ["integration", "push-attendance"] },
+            "description": "When status is Absent, the Admin API automatically creates an Unpaid ₱50 sanction. No extra action needed from Luis."
+          }
+        }
+      ]
+    },
+    {
+      "name": "💳 Integration — Ned (Sanction Payment)",
+      "item": [
+        {
+          "name": "PING — Announce Online",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"apiKey\": \"{{payKey}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/integration/ping", "host": ["{{baseUrl}}"], "path": ["integration", "ping"] }
+          }
+        },
+        {
+          "name": "Push Transaction (New Sanction)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-api-key",    "value": "{{payKey}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"memberName\":   \"Juan dela Cruz\",\n  \"memberId\":     \"MBR-002\",\n  \"reason\":       \"Absence – Foundation Day\",\n  \"amount\":       50,\n  \"sanctionDate\": \"2026-07-08\",\n  \"notes\":        \"No excuse letter submitted\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/integration/push-transaction", "host": ["{{baseUrl}}"], "path": ["integration", "push-transaction"] },
+            "description": "Call this for manually created sanctions. Do NOT duplicate absence sanctions — Luis's system handles those automatically."
+          }
+        }
+      ]
+    }
+  ]
+}

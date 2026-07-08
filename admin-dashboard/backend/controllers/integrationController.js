@@ -146,4 +146,162 @@ const getLogs = async (req, res) => {
   }
 };
 
-module.exports = { ping, pushTransaction, getLogs };
+/* ══════════════════════════════════════════════════════════════════
+   POST /api/integration/push-member
+   Member Registration sub-system pushes a new or updated member record.
+   Headers: x-api-key: <Member Registration API key>
+   Body: { memberId, firstName, lastName, email, course, year, status }
+   ══════════════════════════════════════════════════════════════════ */
+const pushMember = async (req, res) => {
+  try {
+    const system = await authenticateSystem(req.headers["x-api-key"]);
+    if (!system) {
+      return res.status(401).json({ success: false, message: "Invalid or inactive API key." });
+    }
+
+    const { memberId, firstName, lastName, email, course, year, status } = req.body;
+    if (!firstName || !lastName) {
+      return res.status(400).json({ success: false, message: "firstName and lastName are required." });
+    }
+
+    const fullName = `${firstName} ${lastName}`;
+
+    await writeLog({
+      system,
+      method:     "POST",
+      endpoint:   "/api/integration/push-member",
+      action:     `Member synced: ${fullName}${course ? ` – ${course}` : ""}${year ? ` Year ${year}` : ""}`,
+      level:      "info",
+      statusCode: 201,
+      meta:       { memberId, firstName, lastName, email, course, year, status },
+      ip:         req.ip,
+    });
+
+    system.lastSeen = new Date();
+    system.status   = "online";
+    await system.save({ validateBeforeSave: false });
+
+    res.status(201).json({
+      success: true,
+      message: `Member "${fullName}" received and logged.`,
+      received: { memberId, firstName, lastName, email, course, year, status },
+    });
+
+  } catch (error) {
+    console.error("[integrationController.pushMember]", error.message);
+    res.status(500).json({ success: false, message: "Failed to process member data." });
+  }
+};
+
+/* ══════════════════════════════════════════════════════════════════
+   POST /api/integration/push-event
+   Events Management sub-system pushes a new or updated event.
+   Headers: x-api-key: <Events Management API key>
+   Body: { eventId, title, description, location, date, organizer, status }
+   ══════════════════════════════════════════════════════════════════ */
+const pushEvent = async (req, res) => {
+  try {
+    const system = await authenticateSystem(req.headers["x-api-key"]);
+    if (!system) {
+      return res.status(401).json({ success: false, message: "Invalid or inactive API key." });
+    }
+
+    const { eventId, title, description, location, date, organizer, status } = req.body;
+    if (!title) {
+      return res.status(400).json({ success: false, message: "Event title is required." });
+    }
+
+    await writeLog({
+      system,
+      method:     "POST",
+      endpoint:   "/api/integration/push-event",
+      action:     `Event synced: "${title}"${location ? ` at ${location}` : ""}${date ? ` on ${new Date(date).toLocaleDateString()}` : ""}`,
+      level:      "info",
+      statusCode: 201,
+      meta:       { eventId, title, description, location, date, organizer, status },
+      ip:         req.ip,
+    });
+
+    system.lastSeen = new Date();
+    system.status   = "online";
+    await system.save({ validateBeforeSave: false });
+
+    res.status(201).json({
+      success: true,
+      message: `Event "${title}" received and logged.`,
+      received: { eventId, title, location, date, organizer, status },
+    });
+
+  } catch (error) {
+    console.error("[integrationController.pushEvent]", error.message);
+    res.status(500).json({ success: false, message: "Failed to process event data." });
+  }
+};
+
+/* ══════════════════════════════════════════════════════════════════
+   POST /api/integration/push-attendance
+   Attendance sub-system pushes an attendance record for an event.
+   Headers: x-api-key: <Attendance Management API key>
+   Body: { eventId, eventTitle, memberId, memberName, status, remarks }
+   ══════════════════════════════════════════════════════════════════ */
+const pushAttendance = async (req, res) => {
+  try {
+    const system = await authenticateSystem(req.headers["x-api-key"]);
+    if (!system) {
+      return res.status(401).json({ success: false, message: "Invalid or inactive API key." });
+    }
+
+    const { eventId, eventTitle, memberId, memberName, status, remarks } = req.body;
+    if (!memberName || !eventTitle) {
+      return res.status(400).json({ success: false, message: "memberName and eventTitle are required." });
+    }
+
+    // If absent — automatically create an unpaid sanction transaction
+    let autoSanction = null;
+    if (status === "Absent" || status === "absent") {
+      autoSanction = await Transaction.create({
+        memberName,
+        memberId:     memberId || "",
+        reason:       `Absence – ${eventTitle}`,
+        amount:       50, // default absence penalty — adjust as needed
+        sanctionDate: new Date(),
+        sourceSystem: system._id,
+        notes:        `Auto-generated from Attendance Management for event: ${eventTitle}`,
+      });
+    }
+
+    const logMsg = status === "Absent" || status === "absent"
+      ? `Attendance: ${memberName} marked ABSENT for "${eventTitle}" → ₱50 sanction auto-created (${autoSanction?.paymentId})`
+      : `Attendance: ${memberName} marked ${status || "Present"} for "${eventTitle}"`;
+
+    await writeLog({
+      system,
+      method:     "POST",
+      endpoint:   "/api/integration/push-attendance",
+      action:     logMsg,
+      level:      status === "Absent" || status === "absent" ? "warning" : "success",
+      statusCode: 201,
+      meta:       { eventId, eventTitle, memberId, memberName, status, remarks, sanctionId: autoSanction?._id },
+      ip:         req.ip,
+    });
+
+    system.lastSeen = new Date();
+    system.status   = "online";
+    await system.save({ validateBeforeSave: false });
+
+    res.status(201).json({
+      success:    true,
+      message:    `Attendance for "${memberName}" recorded.`,
+      status,
+      autoSanction: autoSanction
+        ? { paymentId: autoSanction.paymentId, amount: autoSanction.amount, status: autoSanction.status }
+        : null,
+    });
+
+  } catch (error) {
+    console.error("[integrationController.pushAttendance]", error.message);
+    res.status(500).json({ success: false, message: "Failed to process attendance data." });
+  }
+};
+
+module.exports = { ping, pushTransaction, pushMember, pushEvent, pushAttendance, getLogs };
