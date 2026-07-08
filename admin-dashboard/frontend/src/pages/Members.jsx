@@ -1,30 +1,46 @@
-import React, { useState } from 'react';
-
-const SAMPLE_MEMBERS = [
-  { id: 'M-001', name: 'Ana Reyes',       course: 'BSCS',  year: '3rd Year', status: 'Active',   sanctions: '₱0' },
-  { id: 'M-002', name: 'Juan dela Cruz',  course: 'BSIT',  year: '2nd Year', status: 'Active',   sanctions: '₱50' },
-  { id: 'M-003', name: 'Maria Santos',    course: 'BSECE', year: '4th Year', status: 'Inactive', sanctions: '₱0' },
-  { id: 'M-004', name: 'Carlo Mendoza',   course: 'BSCS',  year: '1st Year', status: 'Active',   sanctions: '₱100' },
-  { id: 'M-005', name: 'Liza Bautista',   course: 'BSIT',  year: '3rd Year', status: 'Active',   sanctions: '₱0' },
-  { id: 'M-006', name: 'Ryan Torres',     course: 'BSECE', year: '2nd Year', status: 'Probation',sanctions: '₱150' },
-];
+import React, { useEffect, useState } from 'react';
+import memberService from '../services/memberService';
 
 const STATUS_STYLE = {
   Active:    { bg: 'rgba(34,197,94,0.12)',  color: '#22c55e', border: 'rgba(34,197,94,0.3)' },
-  Inactive:  { bg: 'rgba(100,116,139,0.12)',color: '#64748b', border: 'rgba(100,116,139,0.3)' },
+  Inactive:  { bg: 'rgba(15,23,42,0.12)', color: '#6b7280', border: 'rgba(15,23,42,0.18)' },
+  Probation: { bg: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: 'rgba(245,158,11,0.3)' },
+};
+
+const STATUS_STYLE = {
+  Active:    { bg: 'rgba(34,197,94,0.12)',  color: '#22c55e', border: 'rgba(34,197,94,0.3)' },
+  Inactive:  { bg: 'rgba(15,23,42,0.12)', color: '#6b7280', border: 'rgba(15,23,42,0.18)' },
   Probation: { bg: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: 'rgba(245,158,11,0.3)' },
 };
 
 const Members = () => {
+  const [members, setMembers] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('All');
   const [showModal, setShowModal] = useState(false);
 
-  const filtered = SAMPLE_MEMBERS.filter((m) => {
-    const matchSearch =
-      m.name.toLowerCase().includes(search.toLowerCase()) ||
-      m.id.toLowerCase().includes(search.toLowerCase());
-    const matchFilter = filter === 'All' || m.status === filter;
+  useEffect(() => {
+    const fetchMembers = async () => {
+      setLoading(true);
+      try {
+        const result = await memberService.getMembers();
+        setMembers(result.members || []);
+      } catch (error) {
+        console.error('[Members] failed to load members', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchMembers();
+  }, []);
+
+  const filtered = members.filter((m) => {
+    const name = (m.fullName || m.memberName || '').toLowerCase();
+    const id = (m.memberId || m._id || '').toString().toLowerCase();
+    const matchSearch = name.includes(search.toLowerCase()) || id.includes(search.toLowerCase());
+    const status = m.status || 'Active';
+    const matchFilter = filter === 'All' || status === filter;
     return matchSearch && matchFilter;
   });
 
@@ -88,29 +104,36 @@ const Members = () => {
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '40px' }}>
-                    No members found
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((m) => {
-                  const s = STATUS_STYLE[m.status];
-                  return (
-                    <tr key={m.id} className="table-row">
-                      <td><code className="id-badge">{m.id}</code></td>
-                      <td><span className="member-name">{m.name}</span></td>
-                      <td>{m.course}</td>
-                      <td>{m.year}</td>
-                      <td>
-                        <span className="status-pill" style={{ background: s.bg, color: s.color, border: `1px solid ${s.border}` }}>
-                          {m.status}
-                        </span>
-                      </td>
-                      <td style={{ color: m.sanctions !== '₱0' ? '#f59e0b' : 'var(--text-secondary)' }}>
-                        {m.sanctions}
-                      </td>
+              {loading ? (
+              <tr>
+                <td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '40px' }}>
+                  Loading members…
+                </td>
+              </tr>
+            ) : filtered.length === 0 ? (
+              <tr>
+                <td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '40px' }}>
+                  No members found
+                </td>
+              </tr>
+            ) : (
+              filtered.map((m) => {
+                const status = m.status || 'Active';
+                const s = STATUS_STYLE[status] || STATUS_STYLE.Active;
+                return (
+                  <tr key={m.memberId || m._id} className="table-row">
+                    <td><code className="id-badge">{m.memberId || m._id || '—'}</code></td>
+                    <td><span className="member-name">{m.fullName || m.memberName || 'Unknown'}</span></td>
+                    <td>{m.course || '—'}</td>
+                    <td>{m.year || '—'}</td>
+                    <td>
+                      <span className="status-pill" style={{ background: s.bg, color: s.color, border: `1px solid ${s.border}` }}>
+                        {status}
+                      </span>
+                    </td>
+                    <td style={{ color: m.sanctions && m.sanctions !== '₱0' ? '#f59e0b' : 'var(--text-secondary)' }}>
+                      {m.sanctions || '₱0'}
+                    </td>
                       <td>
                         <div className="action-btns">
                           <button className="action-btn view" title="View">👁</button>
@@ -127,7 +150,7 @@ const Members = () => {
         </div>
 
         <div className="table-footer">
-          <span>{filtered.length} of {SAMPLE_MEMBERS.length} members</span>
+          <span>{filtered.length} of {members.length} members</span>
         </div>
       </div>
 

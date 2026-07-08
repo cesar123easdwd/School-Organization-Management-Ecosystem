@@ -3,7 +3,7 @@ import integrationService from '../services/integrationService';
 import toast from 'react-hot-toast';
 
 const LOG_STYLE = {
-  info:    { bg: 'rgba(99,102,241,0.12)',  color: '#818cf8', border: 'rgba(99,102,241,0.3)',  icon: 'ℹ' },
+  info:    { bg: 'rgba(127,20,22,0.12)',  color: '#7f1416', border: 'rgba(127,20,22,0.3)',  icon: 'ℹ' },
   error:   { bg: 'rgba(239,68,68,0.12)',   color: '#ef4444', border: 'rgba(239,68,68,0.3)',   icon: '✕' },
   warning: { bg: 'rgba(245,158,11,0.12)',  color: '#f59e0b', border: 'rgba(245,158,11,0.3)',  icon: '⚠' },
   success: { bg: 'rgba(34,197,94,0.12)',   color: '#22c55e', border: 'rgba(34,197,94,0.3)',   icon: '✓' },

@@ -37,6 +37,10 @@ app.use("/api/auth",        require("./routes/authRoutes"));
 app.use("/api/dashboard",   require("./routes/dashboardRoutes"));
 app.use("/api/systems",     require("./routes/systemRoutes"));
 app.use("/api/integration", require("./routes/integrationRoutes"));
+app.use("/api/members",     require("./routes/memberRoutes"));
+app.use("/api/events",      require("./routes/eventRoutes"));
+app.use("/api/attendance",  require("./routes/attendanceRoutes"));
+app.use("/api/transactions",require("./routes/transactionRoutes"));
 
 // ── 404 Handler ───────────────────────────────────────────────────
 app.use((req, res) => {

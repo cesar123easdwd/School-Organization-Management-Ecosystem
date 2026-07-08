@@ -27,8 +27,8 @@ const ProtectedRoute = ({ children }) => {
           alignItems: "center",
           justifyContent: "center",
           height: "100vh",
-          background: "var(--bg-base, #0f1117)",
-          color: "var(--text-primary, #e2e8f0)",
+          background: "var(--bg-primary, #f6f1eb)",
+          color: "var(--text-primary, #1f2937)",
           fontSize: "14px",
           gap: "12px",
         }}

@@ -1,13 +1,5 @@
-import React, { useState } from 'react';
-
-const SAMPLE_PAYMENTS = [
-  { id: 'PAY-001', member: 'Juan dela Cruz',  reason: 'Absence – Foundation Day',     amount: 50,  date: '2026-06-29', status: 'Unpaid' },
-  { id: 'PAY-002', member: 'Carlo Mendoza',   reason: 'Late – Leadership Seminar',    amount: 30,  date: '2026-07-01', status: 'Paid'   },
-  { id: 'PAY-003', member: 'Ryan Torres',     reason: 'Absence – Foundation Day',     amount: 50,  date: '2026-06-29', status: 'Unpaid' },
-  { id: 'PAY-004', member: 'Ryan Torres',     reason: 'Absence – Acquaintance Party', amount: 100, date: '2026-07-09', status: 'Unpaid' },
-  { id: 'PAY-005', member: 'Maria Santos',    reason: 'Late – General Assembly',      amount: 30,  date: '2026-07-16', status: 'Paid'   },
-  { id: 'PAY-006', member: 'Ana Reyes',       reason: 'Lost ID Replacement',          amount: 75,  date: '2026-07-03', status: 'Paid'   },
-];
+import React, { useEffect, useState } from 'react';
+import transactionService from '../services/transactionService';
 
 const PAY_STYLE = {
   Paid:   { bg:'rgba(34,197,94,0.12)',  color:'#22c55e', border:'rgba(34,197,94,0.3)'  },
@@ -15,16 +7,37 @@ const PAY_STYLE = {
 };
 
 const Payments = () => {
-  const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState('All');
-  const [showModal, setShowModal] = useState(false);
+  const [transactions, setTransactions] = useState([]);
+  const [loading, setLoading]             = useState(true);
+  const [search, setSearch]               = useState('');
+  const [filter, setFilter]               = useState('All');
+  const [showModal, setShowModal]         = useState(false);
 
-  const totalCollected = SAMPLE_PAYMENTS.filter(p=>p.status==='Paid').reduce((a,b)=>a+b.amount,0);
-  const totalUnpaid    = SAMPLE_PAYMENTS.filter(p=>p.status==='Unpaid').reduce((a,b)=>a+b.amount,0);
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      setLoading(true);
+      try {
+        const result = await transactionService.getTransactions();
+        setTransactions(result.transactions || []);
+      } catch (error) {
+        console.error('[Payments] failed to load transactions', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const filtered = SAMPLE_PAYMENTS.filter(p => {
-    const matchSearch = p.member.toLowerCase().includes(search.toLowerCase()) || p.reason.toLowerCase().includes(search.toLowerCase());
-    const matchFilter = filter === 'All' || p.status === filter;
+    fetchTransactions();
+  }, []);
+
+  const totalCollected = transactions.filter(p => p.status === 'Paid').reduce((acc, p) => acc + (p.amount || 0), 0);
+  const totalUnpaid    = transactions.filter(p => p.status === 'Unpaid').reduce((acc, p) => acc + (p.amount || 0), 0);
+
+  const filtered = transactions.filter(p => {
+    const member = (p.memberName || p.payerName || '').toString().toLowerCase();
+    const reason = (p.reason || p.notes || '').toString().toLowerCase();
+    const matchSearch = member.includes(search.toLowerCase()) || reason.includes(search.toLowerCase());
+    const status = p.status || 'Unpaid';
+    const matchFilter = filter === 'All' || status === filter;
     return matchSearch && matchFilter;
   });
 
@@ -83,18 +96,31 @@ const Payments = () => {
               <tr><th>Payment ID</th><th>Member</th><th>Reason</th><th>Amount</th><th>Date</th><th>Status</th><th>Actions</th></tr>
             </thead>
             <tbody>
-              {filtered.map(p => {
-                const s = PAY_STYLE[p.status];
+              {loading ? (
+                <tr>
+                  <td colSpan={7} style={{ textAlign:'center', padding:'40px', color:'var(--text-muted)' }}>
+                    Loading payments…
+                  </td>
+                </tr>
+              ) : filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={7} style={{ textAlign:'center', padding:'40px', color:'var(--text-muted)' }}>
+                    No payment records found
+                  </td>
+                </tr>
+              ) : filtered.map(p => {
+                const status = p.status || 'Unpaid';
+                const s = PAY_STYLE[status];
                 return (
-                  <tr key={p.id} className="table-row">
-                    <td><code className="id-badge">{p.id}</code></td>
-                    <td><span className="member-name">{p.member}</span></td>
-                    <td style={{color:'var(--text-secondary)',fontSize:'13px'}}>{p.reason}</td>
-                    <td style={{color: p.status==='Unpaid' ? '#ef4444' : '#22c55e', fontWeight:600}}>₱{p.amount}</td>
-                    <td style={{color:'var(--text-secondary)'}}>{p.date}</td>
-                    <td><span className="status-pill" style={{background:s.bg,color:s.color,border:`1px solid ${s.border}`}}>{p.status}</span></td>
+                  <tr key={p.paymentId || p._id || p.id} className="table-row">
+                    <td><code className="id-badge">{p.paymentId || p._id || p.id || '—'}</code></td>
+                    <td><span className="member-name">{p.memberName || p.payerName || 'Unknown'}</span></td>
+                    <td style={{color:'var(--text-secondary)',fontSize:'13px'}}>{p.reason || p.notes || '—'}</td>
+                    <td style={{color: status === 'Unpaid' ? '#ef4444' : '#22c55e', fontWeight:600}}>₱{p.amount ?? 0}</td>
+                    <td style={{color:'var(--text-secondary)'}}>{p.date ? new Date(p.date).toLocaleDateString('en-PH') : '—'}</td>
+                    <td><span className="status-pill" style={{background:s.bg,color:s.color,border:`1px solid ${s.border}`}}>{status}</span></td>
                     <td><div className="action-btns">
-                      {p.status==='Unpaid' && <button className="action-btn view" title="Mark Paid" style={{color:'#22c55e'}}>✓</button>}
+                      {status === 'Unpaid' && <button className="action-btn view" title="Mark Paid" style={{color:'#22c55e'}}>✓</button>}
                       <button className="action-btn edit" title="Edit">✏️</button>
                       <button className="action-btn delete" title="Delete">🗑</button>
                     </div></td>

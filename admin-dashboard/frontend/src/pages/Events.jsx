@@ -1,30 +1,41 @@
-import React, { useState } from 'react';
-
-const SAMPLE_EVENTS = [
-  { id: 'E-001', title: 'General Assembly',       date: '2026-07-15', time: '09:00 AM', venue: 'Auditorium',     participants: 0, status: 'Upcoming',  type: 'Assembly' },
-  { id: 'E-002', title: 'Leadership Seminar',     date: '2026-07-20', time: '01:00 PM', venue: 'Room 301',       participants: 0, status: 'Upcoming',  type: 'Seminar'  },
-  { id: 'E-003', title: 'Foundation Day',         date: '2026-06-28', time: '08:00 AM', venue: 'School Grounds', participants: 0, status: 'Completed', type: 'Celebration' },
-  { id: 'E-004', title: 'Sports Fest',            date: '2026-08-05', time: '07:00 AM', venue: 'Gymnasium',      participants: 0, status: 'Upcoming',  type: 'Sports' },
-  { id: 'E-005', title: 'Acquaintance Party',     date: '2026-07-08', time: '04:00 PM', venue: 'Cafeteria',      participants: 0, status: 'Ongoing',   type: 'Social' },
-];
+import React, { useEffect, useState } from 'react';
+import eventService from '../services/eventService';
 
 const STATUS_COLORS = {
-  Upcoming:  { bg: 'rgba(99,102,241,0.12)',  color: '#818cf8', border: 'rgba(99,102,241,0.3)' },
+  Upcoming:  { bg: 'rgba(127,20,22,0.12)', color: '#7f1416', border: 'rgba(127,20,22,0.3)' },
   Ongoing:   { bg: 'rgba(34,197,94,0.12)',   color: '#22c55e', border: 'rgba(34,197,94,0.3)' },
-  Completed: { bg: 'rgba(100,116,139,0.12)', color: '#64748b', border: 'rgba(100,116,139,0.3)' },
+  Completed: { bg: 'rgba(15,23,42,0.12)', color: '#6b7280', border: 'rgba(15,23,42,0.18)' },
 };
 
 const TYPE_ICONS = { Assembly:'🎤', Seminar:'📚', Celebration:'🎉', Sports:'⚽', Social:'🎊' };
 
 const Events = () => {
-  const [search, setSearch]     = useState('');
-  const [filter, setFilter]     = useState('All');
-  const [showModal, setShowModal] = useState(false);
-  const [view, setView]         = useState('list'); // 'list' | 'grid'
+  const [events, setEvents]         = useState([]);
+  const [loading, setLoading]       = useState(true);
+  const [search, setSearch]         = useState('');
+  const [filter, setFilter]         = useState('All');
+  const [showModal, setShowModal]   = useState(false);
+  const [view, setView]             = useState('list'); // 'list' | 'grid'
 
-  const filtered = SAMPLE_EVENTS.filter((e) => {
-    const matchSearch = e.title.toLowerCase().includes(search.toLowerCase()) || e.venue.toLowerCase().includes(search.toLowerCase());
-    const matchFilter = filter === 'All' || e.status === filter;
+  useEffect(() => {
+    const fetchEvents = async () => {
+      setLoading(true);
+      try {
+        const result = await eventService.getEvents();
+        setEvents(result.events || []);
+      } catch (error) {
+        console.error('[Events] failed to load events', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchEvents();
+  }, []);
+
+  const filtered = events.filter((e) => {
+    const matchSearch = (e.title || '').toLowerCase().includes(search.toLowerCase()) || (e.location || '').toLowerCase().includes(search.toLowerCase());
+    const status = e.status || 'Upcoming';
+    const matchFilter = filter === 'All' || status === filter;
     return matchSearch && matchFilter;
   });
 
@@ -44,12 +55,12 @@ const Events = () => {
       <div className="mini-stats-row">
         {['Upcoming', 'Ongoing', 'Completed'].map((s) => (
           <div key={s} className="mini-stat-card">
-            <div className="mini-stat-value">{SAMPLE_EVENTS.filter(e => e.status === s).length}</div>
+            <div className="mini-stat-value">{events.filter(e => (e.status || 'Upcoming') === s).length}</div>
             <div className="mini-stat-label">{s}</div>
           </div>
         ))}
         <div className="mini-stat-card">
-          <div className="mini-stat-value">{SAMPLE_EVENTS.length}</div>
+          <div className="mini-stat-value">{events.length}</div>
           <div className="mini-stat-label">Total Events</div>
         </div>
       </div>
@@ -81,16 +92,29 @@ const Events = () => {
                 <tr><th>Event ID</th><th>Title</th><th>Date & Time</th><th>Venue</th><th>Type</th><th>Status</th><th>Actions</th></tr>
               </thead>
               <tbody>
-                {filtered.map(ev => {
-                  const s = STATUS_COLORS[ev.status];
+                {loading ? (
+                  <tr>
+                    <td colSpan={7} style={{ textAlign:'center', padding:'40px', color:'var(--text-muted)' }}>
+                      Loading events…
+                    </td>
+                  </tr>
+                ) : filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} style={{ textAlign:'center', padding:'40px', color:'var(--text-muted)' }}>
+                      No events found
+                    </td>
+                  </tr>
+                ) : filtered.map(ev => {
+                  const status = ev.status || 'Upcoming';
+                  const s = STATUS_COLORS[status] || STATUS_COLORS.Upcoming;
                   return (
-                    <tr key={ev.id} className="table-row">
-                      <td><code className="id-badge">{ev.id}</code></td>
-                      <td><span className="member-name">{ev.title}</span></td>
-                      <td><span style={{color:'var(--text-secondary)'}}>{ev.date} · {ev.time}</span></td>
-                      <td>{ev.venue}</td>
-                      <td><span>{TYPE_ICONS[ev.type]} {ev.type}</span></td>
-                      <td><span className="status-pill" style={{background:s.bg,color:s.color,border:`1px solid ${s.border}`}}>{ev.status}</span></td>
+                    <tr key={ev.eventId || ev._id} className="table-row">
+                      <td><code className="id-badge">{ev.eventId || ev._id || '—'}</code></td>
+                      <td><span className="member-name">{ev.title || 'Untitled event'}</span></td>
+                      <td><span style={{color:'var(--text-secondary)'}}>{ev.date ? new Date(ev.date).toLocaleDateString('en-PH') : '—'}</span></td>
+                      <td>{ev.location || '—'}</td>
+                      <td><span>{TYPE_ICONS[ev.type] || '📅'} {ev.type || 'Event'}</span></td>
+                      <td><span className="status-pill" style={{background:s.bg,color:s.color,border:`1px solid ${s.border}`}}>{status}</span></td>
                       <td><div className="action-btns">
                         <button className="action-btn view" title="View">👁</button>
                         <button className="action-btn edit" title="Edit">✏️</button>
@@ -105,16 +129,17 @@ const Events = () => {
         ) : (
           <div className="events-grid">
             {filtered.map(ev => {
-              const s = STATUS_COLORS[ev.status];
+              const status = ev.status || 'Upcoming';
+              const s = STATUS_COLORS[status] || STATUS_COLORS.Upcoming;
               return (
-                <div key={ev.id} className="event-card">
-                  <div className="event-card-icon">{TYPE_ICONS[ev.type]}</div>
+                <div key={ev.eventId || ev._id || ev.id} className="event-card">
+                  <div className="event-card-icon">{TYPE_ICONS[ev.type] || '📅'}</div>
                   <div className="event-card-content">
-                    <div className="event-card-title">{ev.title}</div>
-                    <div className="event-card-meta">📅 {ev.date} · {ev.time}</div>
-                    <div className="event-card-meta">📍 {ev.venue}</div>
+                    <div className="event-card-title">{ev.title || 'Untitled event'}</div>
+                    <div className="event-card-meta">📅 {ev.date ? new Date(ev.date).toLocaleDateString('en-PH') : '—'}{ev.time ? ` · ${ev.time}` : ''}</div>
+                    <div className="event-card-meta">📍 {ev.location || '—'}</div>
                   </div>
-                  <span className="status-pill" style={{background:s.bg,color:s.color,border:`1px solid ${s.border}`}}>{ev.status}</span>
+                  <span className="status-pill" style={{background:s.bg,color:s.color,border:`1px solid ${s.border}`}}>{status}</span>
                 </div>
               );
             })}

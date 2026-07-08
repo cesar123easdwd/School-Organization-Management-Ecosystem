@@ -3,11 +3,11 @@ import systemService from '../services/systemService';
 import toast from 'react-hot-toast';
 
 const MODULE_ICON = {
-  'member-registration': { icon: '👤', bg: 'rgba(99,102,241,0.18)'  },
-  'events-management':   { icon: '📅', bg: 'rgba(6,182,212,0.18)'   },
+  'member-registration': { icon: '👤', bg: 'rgba(127,20,22,0.18)'  },
+  'events-management':   { icon: '📅', bg: 'rgba(127,20,22,0.12)'  },
   'attendance':          { icon: '✅', bg: 'rgba(34,197,94,0.18)'   },
   'payments':            { icon: '💳', bg: 'rgba(245,158,11,0.18)'  },
-  'other':               { icon: '🔗', bg: 'rgba(100,116,139,0.18)' },
+  'other':               { icon: '🔗', bg: 'rgba(15,23,42,0.08)' },
 };
 
 const timeAgo = (dateStr) => {
@@ -60,7 +60,7 @@ const AddSystemModal = ({ onClose, onCreated }) => {
               <p style={{ color: '#f59e0b', fontSize: '13px', fontWeight: 600, marginBottom: '8px' }}>
                 ⚠️ Copy this API key now — it will not be shown again.
               </p>
-              <code style={{ fontSize: '12px', color: '#e2e8f0', wordBreak: 'break-all', display: 'block' }}>
+              <code style={{ fontSize: '12px', color: 'var(--text-secondary)', wordBreak: 'break-all', display: 'block' }}>
                 {newKey}
               </code>
             </div>

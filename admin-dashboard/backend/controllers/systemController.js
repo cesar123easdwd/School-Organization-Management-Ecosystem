@@ -2,6 +2,14 @@ const crypto         = require("crypto");
 const System         = require("../models/system");
 const IntegrationLog = require("../models/integrationLog");
 
+const ONLINE_STATUS_WINDOW_MS = 5 * 60 * 1000;
+
+const getRealtimeSystemStatus = (system) => {
+  if (!system?.lastSeen) return 'offline';
+  if (system.status === 'error') return 'error';
+  return (Date.now() - new Date(system.lastSeen).getTime()) <= ONLINE_STATUS_WINDOW_MS ? 'online' : 'offline';
+};
+
 /* ─── Helper: generate a secure random API key ─────────────────── */
 const generateApiKey = () => `sk_${crypto.randomBytes(24).toString("hex")}`;
 
@@ -12,7 +20,12 @@ const generateApiKey = () => `sk_${crypto.randomBytes(24).toString("hex")}`;
 const getSystems = async (req, res) => {
   try {
     const systems = await System.find().populate("registeredBy", "name email").sort({ createdAt: -1 });
-    res.status(200).json({ success: true, count: systems.length, systems });
+    const systemsWithLiveStatus = systems.map((sys) => {
+      const obj = sys.toObject();
+      obj.status = getRealtimeSystemStatus(obj);
+      return obj;
+    });
+    res.status(200).json({ success: true, count: systems.length, systems: systemsWithLiveStatus });
   } catch (error) {
     console.error("[systemController.getSystems]", error.message);
     res.status(500).json({ success: false, message: "Failed to fetch systems." });

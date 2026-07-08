@@ -5,15 +5,13 @@ import {
   PieChart, Pie, Cell, Tooltip as PieTooltip, Legend,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
-import dashboardService   from '../services/dashboardService';
-import integrationService from '../services/integrationService';
-import systemService      from '../services/systemService';
+import dashboardService from '../services/dashboardService';
 import toast from 'react-hot-toast';
 import useAuth from '../hooks/useAuth';
 
 /* ── Constants ────────────────────────────────────────────────────── */
 const PIE_COLORS    = { Paid: '#22c55e', Unpaid: '#ef4444', Waived: '#f59e0b' };
-const LEVEL_COLORS  = { success: '#22c55e', info: '#6366f1', warning: '#f59e0b', error: '#ef4444' };
+const LEVEL_COLORS  = { success: '#22c55e', info: '#7f1416', warning: '#f59e0b', error: '#ef4444' };
 
 const MODULE_ICON = {
   'member-registration': '👤',
@@ -77,8 +75,8 @@ const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
     <div style={{
-      background: 'rgba(22,28,45,0.95)', border: '1px solid rgba(100,116,139,0.2)',
-      borderRadius: '10px', padding: '10px 14px', fontSize: '12px',
+      background: '#ffffff', border: '1px solid rgba(15,23,42,0.12)',
+      borderRadius: '10px', padding: '10px 14px', fontSize: '12px', color: '#1f2937',
     }}>
       <div style={{ color: '#94a3b8', marginBottom: '6px', fontWeight: 600 }}>{label}</div>
       {payload.map((p) => (
@@ -129,27 +127,21 @@ const Dashboard = () => {
 
       {/* ── Greeting ────────────────────────────────────────────── */}
       <div className="dashboard-greeting fade-in" style={{ marginBottom: '28px' }}>
-        <h1 style={{ margin: 0, fontSize: '22px', fontWeight: 700, color: 'var(--text-primary)' }}>
-          {greeting}, <span style={{ color: '#6366f1' }}>{firstName}</span> 👋
+        <h1>
+          {greeting}, <span style={{ color: '#7f1416' }}>{firstName}</span> 👋
         </h1>
-        <p style={{ margin: '4px 0 0', color: 'var(--text-muted)', fontSize: '14px' }}>
-          Here's your organization overview for today.
-        </p>
-        <div style={{ marginTop: '8px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-            🕐 {new Date().toLocaleString('en-PH', { weekday: 'long', month: 'long', day: 'numeric' })}
-          </span>
+        <p>Here's your organization overview for today.</p>
+        <div className="dashboard-meta">
+          <span>🕐 {new Date().toLocaleString('en-PH', { weekday: 'long', month: 'long', day: 'numeric' })}</span>
           {stats.todayActivity > 0 && (
-            <span style={{ fontSize: '12px', color: '#22c55e' }}>
-              ⚡ {stats.todayActivity} activities today
-            </span>
+            <span className="status-success">⚡ {stats.todayActivity} activities today</span>
           )}
         </div>
       </div>
 
       {/* ── Stat Cards ──────────────────────────────────────────── */}
-      <div className="stats-grid" style={{ marginBottom: '28px' }}>
-        <StatCard loading={loading} icon="👥" label="Total Members"       color="#6366f1"
+      <div className="stats-grid">
+        <StatCard loading={loading} icon="👥" label="Total Members"       color="#7f1416"
           value={loading ? '…' : (stats.totalMembers || 0).toLocaleString()}
           sub="Registered in the system"
           trend={stats.totalMembers > 0 ? `${stats.totalMembers} active` : null}
@@ -172,7 +164,7 @@ const Dashboard = () => {
       </div>
 
       {/* ── Secondary KPI Row ───────────────────────────────────── */}
-      <div className="mini-stats-row" style={{ marginBottom: '32px' }}>
+      <div className="mini-stats-row">
         {[
           { icon: '📅', label: 'Events Logged',      value: stats.totalEvents        ?? 0 },
           { icon: '📋', label: 'Total Transactions',  value: stats.totalTransactions  ?? 0 },
@@ -189,14 +181,14 @@ const Dashboard = () => {
       </div>
 
       {/* ── Charts Row 1: Area + Pie ─────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px', marginBottom: '20px' }}>
+      <div className="dashboard-charts-row">
 
         {/* Monthly Transactions Area Chart */}
         <ChartCard
           title="Monthly Sanctions Overview"
           subtitle="Last 6 months — collected vs outstanding (₱)"
           action={
-            <button onClick={fetchAll} style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '12px', padding: '4px 10px', borderRadius: 'var(--radius-sm)', cursor: 'pointer' }}>
+            <button type="button" onClick={fetchAll} className="btn-ghost">
               ↻ Refresh
             </button>
           }
@@ -213,11 +205,11 @@ const Dashboard = () => {
                   <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(100,116,139,0.1)" />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(15,23,42,0.1)" />
               <XAxis dataKey="month" tick={{ fill: '#64748b', fontSize: 11 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fill: '#64748b', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => `₱${v}`} />
               <Tooltip content={<CustomTooltip />} />
-              <Legend wrapperStyle={{ fontSize: '12px', color: '#94a3b8', paddingTop: '8px' }} />
+              <Legend wrapperStyle={{ fontSize: '12px', color: '#475569', paddingTop: '8px' }} />
               <Area type="monotone" dataKey="collected" name="Collected" stroke="#22c55e" strokeWidth={2} fill="url(#gradCollected)" />
               <Area type="monotone" dataKey="unpaid"    name="Unpaid"    stroke="#ef4444" strokeWidth={2} fill="url(#gradUnpaid)" />
             </AreaChart>
@@ -227,7 +219,7 @@ const Dashboard = () => {
         {/* Sanction Status Pie */}
         <ChartCard title="Sanction Status" subtitle="Distribution by status">
           {sanctionPie.length === 0 ? (
-            <div style={{ height: 220, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '13px', flexDirection: 'column', gap: '8px' }}>
+            <div className="empty-state" style={{ height: 220 }}>
               <span style={{ fontSize: '28px' }}>📊</span>
               <span>No transaction data yet</span>
             </div>
@@ -236,15 +228,15 @@ const Dashboard = () => {
               <PieChart>
                 <Pie data={sanctionPie} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={55} outerRadius={80} paddingAngle={3}>
                   {sanctionPie.map((entry) => (
-                    <Cell key={entry.name} fill={PIE_COLORS[entry.name] || '#6366f1'} />
+                    <Cell key={entry.name} fill={PIE_COLORS[entry.name] || '#7f1416'} />
                   ))}
                 </Pie>
                 <PieTooltip
                   formatter={(val, name, props) => [`${val} records (₱${props.payload.amount?.toLocaleString()})`, name]}
-                  contentStyle={{ background: 'rgba(22,28,45,0.95)', border: '1px solid rgba(100,116,139,0.2)', borderRadius: '10px', fontSize: '12px' }}
-                  labelStyle={{ color: '#94a3b8' }}
+                  contentStyle={{ background: '#ffffff', border: '1px solid rgba(15,23,42,0.12)', borderRadius: '10px', fontSize: '12px', color: '#1f2937' }}
+                  labelStyle={{ color: '#475569' }}
                 />
-                <Legend wrapperStyle={{ fontSize: '12px', color: '#94a3b8' }} />
+                <Legend wrapperStyle={{ fontSize: '12px', color: '#475569' }} />
               </PieChart>
             </ResponsiveContainer>
           )}
@@ -252,28 +244,28 @@ const Dashboard = () => {
       </div>
 
       {/* ── Charts Row 2: Bar + Systems ─────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+      <div className="dashboard-charts-subrow">
 
         {/* Log Level Bar Chart */}
         <ChartCard title="Activity Log Breakdown" subtitle="Events by severity level">
           {logLevels.length === 0 ? (
-            <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '13px', flexDirection: 'column', gap: '8px' }}>
+            <div className="empty-state" style={{ height: 200 }}>
               <span style={{ fontSize: '28px' }}>📋</span>
               <span>No log data yet</span>
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={logLevels} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(100,116,139,0.1)" vertical={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(15,23,42,0.1)" vertical={false} />
                 <XAxis dataKey="level" tick={{ fill: '#64748b', fontSize: 11, textTransform: 'capitalize' }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fill: '#64748b', fontSize: 11 }} axisLine={false} tickLine={false} />
                 <Tooltip
-                  contentStyle={{ background: 'rgba(22,28,45,0.95)', border: '1px solid rgba(100,116,139,0.2)', borderRadius: '10px', fontSize: '12px' }}
-                  cursor={{ fill: 'rgba(99,102,241,0.05)' }}
+                  contentStyle={{ background: '#ffffff', border: '1px solid rgba(15,23,42,0.12)', borderRadius: '10px', fontSize: '12px', color: '#1f2937' }}
+                  cursor={{ fill: 'rgba(127,20,22,0.05)' }}
                 />
                 <Bar dataKey="count" name="Events" radius={[6, 6, 0, 0]}>
                   {logLevels.map((entry) => (
-                    <Cell key={entry.level} fill={LEVEL_COLORS[entry.level] || '#6366f1'} />
+                    <Cell key={entry.level} fill={LEVEL_COLORS[entry.level] || '#7f1416'} />
                   ))}
                 </Bar>
               </BarChart>
@@ -283,31 +275,26 @@ const Dashboard = () => {
 
         {/* Connected Systems Status */}
         <ChartCard title="Connected Systems" subtitle="Real-time sub-system status"
-          action={<a href="/systems" style={{ fontSize: '12px', color: '#6366f1', textDecoration: 'none' }}>Manage →</a>}
+          action={<a href="/systems" className="chart-card-action">Manage →</a>}
         >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '4px 0' }}>
+          <div className="systems-status-list">
             {systems.length === 0 ? (
-              <p style={{ color: 'var(--text-muted)', fontSize: '13px', textAlign: 'center', margin: '32px 0' }}>No systems registered.</p>
+              <p className="empty-state">No systems registered.</p>
             ) : systems.map(sys => (
-              <div key={sys._id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', background: 'rgba(15,17,23,0.4)', borderRadius: '10px', border: '1px solid rgba(100,116,139,0.1)' }}>
-                <span style={{ fontSize: '20px', flexShrink: 0 }}>
+              <div key={sys._id} className="system-status-item">
+                <span className="system-status-icon" style={{ fontSize: '20px', flexShrink: 0 }}>
                   {MODULE_ICON[sys.module] || '🔗'}
                 </span>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <div className="system-status-name">
                     {sys.name}
                   </div>
-                  <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                  <div className="system-status-meta">
                     {sys.lastSeen ? `Last seen ${timeAgo(sys.lastSeen)}` : 'Never connected'}
                   </div>
                 </div>
-                <div style={{
-                  display: 'flex', alignItems: 'center', gap: '5px',
-                  fontSize: '11px', fontWeight: 600,
-                  color: sys.status === 'online' ? '#22c55e' : '#64748b',
-                }}>
-                  <span style={{
-                    width: '7px', height: '7px', borderRadius: '50%', flexShrink: 0,
+                <div className={`system-status-badge ${sys.status === 'online' ? 'online' : ''}`}>
+                  <span className="system-status-dot" style={{
                     background: sys.status === 'online' ? '#22c55e' : '#64748b',
                     boxShadow: sys.status === 'online' ? '0 0 6px #22c55e' : 'none',
                     animation: sys.status === 'online' ? 'pulse 2s infinite' : 'none',
@@ -322,30 +309,23 @@ const Dashboard = () => {
 
       {/* ── Activity Timeline ────────────────────────────────────── */}
       <ChartCard title="Recent Activity" subtitle="Latest events from all connected systems"
-        action={<a href="/logs" style={{ fontSize: '12px', color: '#6366f1', textDecoration: 'none' }}>View All →</a>}
+        action={<a href="/logs" className="chart-card-action">View All →</a>}
       >
         <div style={{ padding: '4px 0' }}>
           {logs.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)', fontSize: '13px' }}>
+            <div className="empty-state">
               <span style={{ fontSize: '32px', display: 'block', marginBottom: '8px' }}>🗂️</span>
               No activity yet. Logs appear here once sub-systems connect.
             </div>
           ) : logs.map((log, i) => {
-            const colors = { success: '#22c55e', info: '#6366f1', warning: '#f59e0b', error: '#ef4444' };
+            const colors = { success: '#22c55e', info: '#7f1416', warning: '#f59e0b', error: '#ef4444' };
             const icons  = { success: '✅', info: 'ℹ️', warning: '⚠️', error: '❌' };
             return (
-              <div key={log._id} style={{
-                display: 'flex', gap: '14px', alignItems: 'flex-start',
-                padding: '12px 0',
-                borderBottom: i < logs.length - 1 ? '1px solid rgba(100,116,139,0.08)' : 'none',
-              }}>
+              <div key={log._id} className="activity-item" style={{ borderBottom: i < logs.length - 1 ? '1px solid rgba(15,23,42,0.08)' : 'none' }}>
                 {/* Timeline dot */}
-                <div style={{
-                  width: '28px', height: '28px', borderRadius: '50%', flexShrink: 0,
-                  background: `${colors[log.level] || '#6366f1'}18`,
-                  border: `1px solid ${colors[log.level] || '#6366f1'}44`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '13px',
+                <div className="activity-dot" style={{
+                  background: `${colors[log.level] || '#7f1416'}18`,
+                  border: `1px solid ${colors[log.level] || '#7f1416'}44`,
                 }}>
                   {icons[log.level] || 'ℹ️'}
                 </div>
@@ -357,7 +337,7 @@ const Dashboard = () => {
                     <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                       {log.systemName || log.system?.name || 'Admin Dashboard'}
                     </span>
-                    <span style={{ fontSize: '11px', color: 'rgba(100,116,139,0.4)' }}>·</span>
+                    <span style={{ fontSize: '11px', color: 'rgba(15,23,42,0.4)' }}>·</span>
                     <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                       {timeAgo(log.createdAt)}
                     </span>
@@ -365,8 +345,8 @@ const Dashboard = () => {
                 </div>
                 <span style={{
                   fontSize: '10px', fontWeight: 700, letterSpacing: '0.5px',
-                  color: colors[log.level] || '#6366f1',
-                  background: `${colors[log.level] || '#6366f1'}18`,
+                  color: colors[log.level] || '#7f1416',
+                  background: `${colors[log.level] || '#7f1416'}18`,
                   padding: '2px 7px', borderRadius: '99px', flexShrink: 0, alignSelf: 'center',
                 }}>
                   {log.level?.toUpperCase()}
@@ -385,7 +365,7 @@ const Dashboard = () => {
         }
         .skeleton-line {
           display: inline-block;
-          background: linear-gradient(90deg, rgba(100,116,139,0.1) 25%, rgba(100,116,139,0.2) 50%, rgba(100,116,139,0.1) 75%);
+          background: linear-gradient(90deg, rgba(15,23,42,0.1) 25%, rgba(15,23,42,0.14) 50%, rgba(15,23,42,0.1) 75%);
           background-size: 200% 100%;
           animation: shimmer 1.5s infinite;
           border-radius: 6px;

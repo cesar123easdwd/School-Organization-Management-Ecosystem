@@ -1,0 +1,235 @@
+openapi: 3.0.3
+info:
+  title: School Organization Admin API
+  version: 1.0.0
+  description: REST API for the School Organization Management Ecosystem admin dashboard.
+servers:
+  - url: http://localhost:5000/api
+paths:
+  /auth/login:
+    post:
+      summary: Admin login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Login successful
+  /auth/me:
+    get:
+      summary: Get current admin profile
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Profile fetched successfully
+  /dashboard/stats:
+    get:
+      summary: Get dashboard stats
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Dashboard data returned
+  /systems:
+    get:
+      summary: Get all systems
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Systems list
+    post:
+      summary: Register new system
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, module]
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                module:
+                  type: string
+                baseUrl:
+                  type: string
+      responses:
+        '201':
+          description: System created
+  /integration/ping:
+    post:
+      summary: Announce subsystem online
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [apiKey]
+              properties:
+                apiKey:
+                  type: string
+      responses:
+        '200':
+          description: Ping received
+  /integration/push-member:
+    post:
+      summary: Push a member record from a subsystem
+      parameters:
+        - in: header
+          name: x-api-key
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [firstName, lastName]
+              properties:
+                memberId:
+                  type: string
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+                email:
+                  type: string
+                course:
+                  type: string
+                year:
+                  type: integer
+                status:
+                  type: string
+      responses:
+        '201':
+          description: Member received
+  /integration/push-event:
+    post:
+      summary: Push an event record from a subsystem
+      parameters:
+        - in: header
+          name: x-api-key
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title]
+              properties:
+                eventId:
+                  type: string
+                title:
+                  type: string
+                description:
+                  type: string
+                location:
+                  type: string
+                date:
+                  type: string
+                organizer:
+                  type: string
+                status:
+                  type: string
+      responses:
+        '201':
+          description: Event received
+  /integration/push-attendance:
+    post:
+      summary: Push attendance and optionally create a sanction
+      parameters:
+        - in: header
+          name: x-api-key
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [memberName, eventTitle]
+              properties:
+                eventId:
+                  type: string
+                eventTitle:
+                  type: string
+                memberId:
+                  type: string
+                memberName:
+                  type: string
+                status:
+                  type: string
+                remarks:
+                  type: string
+      responses:
+        '201':
+          description: Attendance received
+  /integration/push-transaction:
+    post:
+      summary: Push a sanction transaction
+      parameters:
+        - in: header
+          name: x-api-key
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [memberName, reason, amount]
+              properties:
+                memberId:
+                  type: string
+                memberName:
+                  type: string
+                reason:
+                  type: string
+                amount:
+                  type: number
+                sanctionDate:
+                  type: string
+                notes:
+                  type: string
+      responses:
+        '201':
+          description: Transaction accepted
+  /integration/logs:
+    get:
+      summary: Get recent integration logs
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Logs returned
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

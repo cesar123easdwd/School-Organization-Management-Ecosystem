@@ -3,6 +3,14 @@ const System         = require("../models/system");
 const IntegrationLog = require("../models/integrationLog");
 const User           = require("../models/users");
 
+const ONLINE_STATUS_WINDOW_MS = 5 * 60 * 1000;
+
+const getRealtimeSystemStatus = (system) => {
+  if (!system?.lastSeen) return 'offline';
+  if (system.status === 'error') return 'error';
+  return (Date.now() - new Date(system.lastSeen).getTime()) <= ONLINE_STATUS_WINDOW_MS ? 'online' : 'offline';
+};
+
 /* ══════════════════════════════════════════════════════════════════
    GET /api/dashboard/stats
    Returns:
@@ -18,7 +26,6 @@ const getStats = async (req, res) => {
     /* ── Core stat card numbers ──────────────────────────────────── */
     const [
       totalMembers,
-      onlineSystems,
       collectedTotal,
       unpaidTotal,
       recentLogs,
@@ -28,8 +35,6 @@ const getStats = async (req, res) => {
       IntegrationLog.distinct("meta.memberId", { endpoint: "/api/integration/push-member" })
         .then(ids => ids.filter(Boolean).length)
         .catch(() => 0),
-
-      System.countDocuments({ status: "online" }),
 
       Transaction.aggregate([
         { $match: { status: "Paid" } },
@@ -48,6 +53,14 @@ const getStats = async (req, res) => {
 
       System.find().select("name status module lastSeen"),
     ]);
+
+    const allSystemsWithStatus = allSystems.map((sys) => {
+      const obj = sys.toObject();
+      obj.status = getRealtimeSystemStatus(obj);
+      return obj;
+    });
+
+    const onlineSystems = allSystemsWithStatus.filter((sys) => sys.status === 'online').length;
 
     /* ── Monthly transactions chart (last 6 months) ──────────────── */
     const sixMonthsAgo = new Date();
@@ -124,7 +137,7 @@ const getStats = async (req, res) => {
         todayTransactions,
       },
 
-      systems:     allSystems,
+      systems:     allSystemsWithStatus,
       recentLogs,
 
       charts: {

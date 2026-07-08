@@ -10,9 +10,9 @@ const BAR_DATA = [
 ];
 
 const MEMBER_SUMMARY = [
-  { course:'BSCS',  count: 2, color:'#6366f1' },
+  { course:'BSCS',  count: 2, color:'#7f1416' },
   { course:'BSIT',  count: 2, color:'#06b6d4' },
-  { course:'BSECE', count: 2, color:'#a855f7' },
+  { course:'BSECE', count: 2, color:'#5f1011' },
 ];
 
 const Reports = () => {
@@ -31,7 +31,7 @@ const Reports = () => {
       {/* Summary Row */}
       <div className="mini-stats-row" style={{marginBottom:'28px'}}>
         {[
-          { label:'Total Members',   val: 6,    icon:'👥', color:'#6366f1' },
+          { label:'Total Members',   val: 6,    icon:'👥', color:'#7f1416' },
           { label:'Total Events',    val: 5,    icon:'📅', color:'#06b6d4' },
           { label:'Avg Attendance',  val:'75%', icon:'✅', color:'#22c55e' },
           { label:'Collected Fines', val:'₱185',icon:'💰', color:'#f59e0b' },
@@ -58,7 +58,7 @@ const Reports = () => {
               <div key={d.label} className="bar-col">
                 <div className="bar-label-top">{d.attendance}%</div>
                 <div className="bar-track">
-                  <div className="bar-fill" style={{ height: `${(d.attendance/maxAtt)*100}%`, background:'linear-gradient(180deg,#6366f1,#818cf8)' }} />
+                  <div className="bar-fill" style={{ height: `${(d.attendance/maxAtt)*100}%`, background:'linear-gradient(180deg,#7f1416,#5f1011)' }} />
                 </div>
                 <div className="bar-label-bottom">{d.label}</div>
               </div>
@@ -101,7 +101,7 @@ const Reports = () => {
           </div>
           <div style={{display:'flex',flexDirection:'column',gap:'12px',padding:'12px 0'}}>
             {[
-              { label:'Upcoming',  val:3, max:5, color:'#818cf8' },
+              { label:'Upcoming',  val:3, max:5, color:'#7f1416' },
               { label:'Ongoing',   val:1, max:5, color:'#22c55e' },
               { label:'Completed', val:1, max:5, color:'#64748b' },
             ].map(item => (

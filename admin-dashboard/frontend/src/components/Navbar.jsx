@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import useAuth from '../hooks/useAuth';
+import dashboardService from '../services/dashboardService';
 
 /* Map route paths to page titles + subtitles */
 const PAGE_META = {
@@ -20,6 +21,30 @@ const Navbar = () => {
   const { user }  = useAuth();
 
   const meta = PAGE_META[location.pathname] || { title: "Dashboard", subtitle: "School Organization Admin" };
+
+  const [onlineCount, setOnlineCount] = useState(null);
+  const [statusLabel, setStatusLabel] = useState('loading');
+
+  useEffect(() => {
+    let active = true;
+    const fetchStatus = async () => {
+      try {
+        const data = await dashboardService.getStats();
+        if (!active) return;
+        const count = data?.stats?.onlineSystems ?? 0;
+        setOnlineCount(count);
+        setStatusLabel(count > 0 ? 'online' : 'offline');
+      } catch {
+        if (!active) return;
+        setOnlineCount(0);
+        setStatusLabel('offline');
+      }
+    };
+
+    fetchStatus();
+    const interval = setInterval(fetchStatus, 30000);
+    return () => { active = false; clearInterval(interval); };
+  }, []);
 
   const now     = new Date();
   const dateStr = now.toLocaleDateString("en-PH", {
@@ -45,9 +70,13 @@ const Navbar = () => {
       {/* Right: Actions */}
       <div className="navbar-right">
         {/* Live indicator */}
-        <div className="live-indicator" aria-label="System status: Online">
+        <div className={`live-indicator ${statusLabel}`} aria-label={`System status: ${statusLabel === 'online' ? 'Online' : statusLabel === 'offline' ? 'Offline' : 'Checking'}`}>
           <span className="live-dot" />
-          System Live
+          {statusLabel === 'loading'
+            ? 'Checking...'
+            : statusLabel === 'online'
+              ? `${onlineCount} systems online`
+              : 'System offline'}
         </div>
 
         {/* Notifications */}

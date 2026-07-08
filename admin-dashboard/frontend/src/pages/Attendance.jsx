@@ -1,13 +1,5 @@
-import React, { useState } from 'react';
-
-const SAMPLE_RECORDS = [
-  { id: 'ATT-001', member: 'Ana Reyes',       event: 'Foundation Day',     date: '2026-06-28', status: 'Present', time: '08:02 AM' },
-  { id: 'ATT-002', member: 'Juan dela Cruz',  event: 'Foundation Day',     date: '2026-06-28', status: 'Late',    time: '09:15 AM' },
-  { id: 'ATT-003', member: 'Maria Santos',    event: 'Foundation Day',     date: '2026-06-28', status: 'Absent',  time: '—' },
-  { id: 'ATT-004', member: 'Carlo Mendoza',   event: 'Foundation Day',     date: '2026-06-28', status: 'Present', time: '07:55 AM' },
-  { id: 'ATT-005', member: 'Liza Bautista',   event: 'Acquaintance Party', date: '2026-07-08', status: 'Present', time: '04:01 PM' },
-  { id: 'ATT-006', member: 'Ryan Torres',     event: 'Acquaintance Party', date: '2026-07-08', status: 'Absent',  time: '—' },
-];
+import React, { useEffect, useState } from 'react';
+import attendanceService from '../services/attendanceService';
 
 const ATT_STYLE = {
   Present: { bg:'rgba(34,197,94,0.12)',   color:'#22c55e', border:'rgba(34,197,94,0.3)'   },
@@ -16,18 +8,39 @@ const ATT_STYLE = {
 };
 
 const Attendance = () => {
+  const [records, setRecords] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('All');
 
-  const total   = SAMPLE_RECORDS.length;
-  const present = SAMPLE_RECORDS.filter(r => r.status === 'Present').length;
-  const late    = SAMPLE_RECORDS.filter(r => r.status === 'Late').length;
-  const absent  = SAMPLE_RECORDS.filter(r => r.status === 'Absent').length;
+  useEffect(() => {
+    const fetchAttendance = async () => {
+      setLoading(true);
+      try {
+        const result = await attendanceService.getAttendance();
+        setRecords(result.attendance || []);
+      } catch (error) {
+        console.error('[Attendance] failed to load records', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAttendance();
+  }, []);
+
+  const total   = records.length;
+  const present = records.filter(r => r.status === 'Present').length;
+  const late    = records.filter(r => r.status === 'Late').length;
+  const absent  = records.filter(r => r.status === 'Absent').length;
   const rate    = total > 0 ? Math.round(((present + late) / total) * 100) : 0;
 
-  const filtered = SAMPLE_RECORDS.filter(r => {
-    const matchSearch = r.member.toLowerCase().includes(search.toLowerCase()) || r.event.toLowerCase().includes(search.toLowerCase());
-    const matchFilter = filter === 'All' || r.status === filter;
+  const filtered = records.filter(r => {
+    const member = (r.memberName || r.member || '').toString().toLowerCase();
+    const event  = (r.eventTitle || r.event || '').toString().toLowerCase();
+    const matchSearch = member.includes(search.toLowerCase()) || event.includes(search.toLowerCase());
+    const status = r.status || 'Absent';
+    const matchFilter = filter === 'All' || status === filter;
     return matchSearch && matchFilter;
   });
 
@@ -52,7 +65,7 @@ const Attendance = () => {
                 strokeLinecap="round" strokeDashoffset={2*Math.PI*34*0.25} transform="rotate(-90 40 40)"/>
               <defs>
                 <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#6366f1"/>
+                  <stop offset="0%" stopColor="#7f1416"/>
                   <stop offset="100%" stopColor="#22c55e"/>
                 </linearGradient>
               </defs>
@@ -67,7 +80,7 @@ const Attendance = () => {
             { label:'Present', val: present, color:'#22c55e' },
             { label:'Late',    val: late,    color:'#f59e0b' },
             { label:'Absent',  val: absent,  color:'#ef4444' },
-            { label:'Total',   val: total,   color:'#818cf8' },
+            { label:'Total',   val: total,   color:'#7f1416' },
           ].map(item => (
             <div key={item.label} className="mini-stat-card">
               <div className="mini-stat-value" style={{color: item.color}}>{item.val}</div>
@@ -97,16 +110,29 @@ const Attendance = () => {
               <tr><th>Record ID</th><th>Member</th><th>Event</th><th>Date</th><th>Time In</th><th>Status</th><th>Actions</th></tr>
             </thead>
             <tbody>
-              {filtered.map(r => {
-                const s = ATT_STYLE[r.status];
+              {loading ? (
+                <tr>
+                  <td colSpan={7} style={{ textAlign:'center', padding:'40px', color:'var(--text-muted)' }}>
+                    Loading attendance…
+                  </td>
+                </tr>
+              ) : filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={7} style={{ textAlign:'center', padding:'40px', color:'var(--text-muted)' }}>
+                    No attendance records found
+                  </td>
+                </tr>
+              ) : filtered.map(r => {
+                const status = r.status || 'Absent';
+                const s = ATT_STYLE[status] || ATT_STYLE.Absent;
                 return (
-                  <tr key={r.id} className="table-row">
-                    <td><code className="id-badge">{r.id}</code></td>
-                    <td><span className="member-name">{r.member}</span></td>
-                    <td>{r.event}</td>
-                    <td style={{color:'var(--text-secondary)'}}>{r.date}</td>
-                    <td style={{color:'var(--text-secondary)'}}>{r.time}</td>
-                    <td><span className="status-pill" style={{background:s.bg,color:s.color,border:`1px solid ${s.border}`}}>{r.status}</span></td>
+                  <tr key={r._id || r.id} className="table-row">
+                    <td><code className="id-badge">{r._id || r.id || '—'}</code></td>
+                    <td><span className="member-name">{r.memberName || r.member || 'Unknown'}</span></td>
+                    <td>{r.eventTitle || r.event || '—'}</td>
+                    <td style={{color:'var(--text-secondary)'}}>{r.date ? new Date(r.date).toLocaleDateString('en-PH') : '—'}</td>
+                    <td style={{color:'var(--text-secondary)'}}>{r.timeIn || r.time || '—'}</td>
+                    <td><span className="status-pill" style={{background:s.bg,color:s.color,border:`1px solid ${s.border}`}}>{status}</span></td>
                     <td><div className="action-btns">
                       <button className="action-btn edit" title="Edit">✏️</button>
                       <button className="action-btn delete" title="Remove">🗑</button>

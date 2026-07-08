@@ -16,8 +16,8 @@ import React from 'react';
  */
 const StatCard = ({
   icon = '📌',
-  iconBg = 'rgba(99,102,241,0.15)',
-  glowColor = 'rgba(99,102,241,0.6)',
+  iconBg = 'rgba(127,20,22,0.12)',
+  glowColor = 'rgba(127,20,22,0.32)',
   label = 'Metric',
   value = '0',
   desc = '',

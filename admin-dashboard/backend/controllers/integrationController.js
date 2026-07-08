@@ -1,6 +1,9 @@
 const System         = require("../models/system");
 const IntegrationLog = require("../models/integrationLog");
 const Transaction    = require("../models/transaction");
+const Member         = require("../models/member");
+const Event          = require("../models/event");
+const Attendance     = require("../models/attendance");
 
 /* ─── Helper: authenticate the incoming system via API key ─────── */
 const authenticateSystem = async (apiKey) => {
@@ -166,6 +169,24 @@ const pushMember = async (req, res) => {
 
     const fullName = `${firstName} ${lastName}`;
 
+    await Member.findOneAndUpdate(
+      { memberId: memberId || email || fullName },
+      {
+        memberId: memberId || email || fullName,
+        firstName,
+        lastName,
+        fullName,
+        email,
+        course,
+        year,
+        status,
+        sourceSystem: system._id,
+        systemName: system.name,
+        lastSyncedAt: new Date(),
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+
     await writeLog({
       system,
       method:     "POST",
@@ -210,6 +231,22 @@ const pushEvent = async (req, res) => {
     if (!title) {
       return res.status(400).json({ success: false, message: "Event title is required." });
     }
+
+    await Event.findOneAndUpdate(
+      { eventId: eventId || title },
+      {
+        eventId: eventId || title,
+        title,
+        description,
+        location,
+        date: date ? new Date(date) : new Date(),
+        organizer,
+        status,
+        sourceSystem: system._id,
+        lastSyncedAt: new Date(),
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
 
     await writeLog({
       system,
@@ -269,6 +306,17 @@ const pushAttendance = async (req, res) => {
         notes:        `Auto-generated from Attendance Management for event: ${eventTitle}`,
       });
     }
+
+    await Attendance.create({
+      eventId: eventId || eventTitle,
+      eventTitle,
+      memberId,
+      memberName,
+      status,
+      remarks,
+      sourceSystem: system._id,
+      lastSyncedAt: new Date(),
+    });
 
     const logMsg = status === "Absent" || status === "absent"
       ? `Attendance: ${memberName} marked ABSENT for "${eventTitle}" → ₱50 sanction auto-created (${autoSanction?.paymentId})`

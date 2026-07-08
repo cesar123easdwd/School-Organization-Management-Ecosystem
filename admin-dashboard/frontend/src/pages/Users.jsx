@@ -5,8 +5,8 @@ import toast from 'react-hot-toast';
 
 const roleColor = {
   superadmin: { color: '#f59e0b', bg: 'rgba(245,158,11,0.12)', border: 'rgba(245,158,11,0.3)' },
-  admin:      { color: '#6366f1', bg: 'rgba(99,102,241,0.12)',  border: 'rgba(99,102,241,0.3)' },
-  viewer:     { color: '#64748b', bg: 'rgba(100,116,139,0.12)', border: 'rgba(100,116,139,0.3)' },
+  admin:      { color: '#7f1416', bg: 'rgba(127,20,22,0.12)',  border: 'rgba(127,20,22,0.3)' },
+  viewer:     { color: '#6b7280', bg: 'rgba(15,23,42,0.12)', border: 'rgba(15,23,42,0.18)' },
 };
 
 const initials = (name = '') =>
@@ -195,7 +195,7 @@ const Users = () => {
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <div style={{
                           width: '34px', height: '34px', borderRadius: '50%',
-                          background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                          background: 'linear-gradient(135deg, #7f1416, #5f1011)',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           fontSize: '12px', fontWeight: 700, color: '#fff', flexShrink: 0,
                         }}>
@@ -204,7 +204,7 @@ const Users = () => {
                         <div>
                           <div className="member-name" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                             {u.name}
-                            {isSelf && <span style={{ fontSize: '10px', background: 'rgba(99,102,241,0.15)', color: '#818cf8', padding: '1px 6px', borderRadius: '99px' }}>You</span>}
+                            {isSelf && <span style={{ fontSize: '10px', background: 'rgba(127,20,22,0.12)', color: '#5f1011', padding: '1px 6px', borderRadius: '99px' }}>You</span>}
                           </div>
                         </div>
                       </div>
@@ -218,7 +218,7 @@ const Users = () => {
                     <td>
                       <span className="status-pill" style={u.isActive
                         ? { background: 'rgba(34,197,94,0.12)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.3)' }
-                        : { background: 'rgba(100,116,139,0.12)', color: '#64748b', border: '1px solid rgba(100,116,139,0.3)' }}>
+                        : { background: 'rgba(15,23,42,0.12)', color: '#6b7280', border: '1px solid rgba(15,23,42,0.18)' }}>
                         {u.isActive ? 'Active' : 'Inactive'}
                       </span>
                     </td>

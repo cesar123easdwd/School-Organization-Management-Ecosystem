@@ -6,7 +6,7 @@ import useAuth from "../../hooks/useAuth";
 /**
  * Login Page
  * ─────────────────────────────────────────────────────────────────
- * Premium dark-themed login page.
+ * Light-themed login page using the brand palette.
  * Uses the existing CSS design system + inline styles for unique elements.
  * No MUI dependency — keeps bundle small and consistent with app style.
  */
@@ -162,12 +162,12 @@ const Login = () => {
         }
         #login-email:focus, #login-password:focus {
           outline: none;
-          border-color: rgba(99,102,241,0.7) !important;
-          box-shadow: 0 0 0 3px rgba(99,102,241,0.15) !important;
+          border-color: rgba(127,20,22,0.7) !important;
+          box-shadow: 0 0 0 3px rgba(127,20,22,0.15) !important;
         }
         #login-submit-btn:hover:not(:disabled) {
           transform: translateY(-1px);
-          box-shadow: 0 8px 25px rgba(99,102,241,0.4) !important;
+          box-shadow: 0 8px 25px rgba(127,20,22,0.4) !important;
         }
       `}</style>
     </div>
@@ -181,7 +181,7 @@ const styles = {
     display:         "flex",
     alignItems:      "center",
     justifyContent:  "center",
-    background:      "linear-gradient(135deg, #0f1117 0%, #141824 50%, #0f1117 100%)",
+    background:      "linear-gradient(135deg, #f6f1eb 0%, #f3ede6 50%, #f6f1eb 100%)",
     padding:         "24px",
     position:        "relative",
     overflow:        "hidden",
@@ -192,7 +192,7 @@ const styles = {
     width:           "500px",
     height:          "500px",
     borderRadius:    "50%",
-    background:      "radial-gradient(circle, rgba(99,102,241,0.12) 0%, transparent 70%)",
+    background:      "radial-gradient(circle, rgba(127,20,22,0.18) 0%, transparent 70%)",
     top:             "-100px",
     left:            "-100px",
     animation:       "blobFloat 8s ease-in-out infinite",
@@ -203,7 +203,7 @@ const styles = {
     width:           "400px",
     height:          "400px",
     borderRadius:    "50%",
-    background:      "radial-gradient(circle, rgba(6,182,212,0.10) 0%, transparent 70%)",
+    background:      "radial-gradient(circle, rgba(127,20,22,0.08) 0%, transparent 70%)",
     bottom:          "-80px",
     right:           "-80px",
     animation:       "blobFloat 10s ease-in-out infinite reverse",
@@ -214,13 +214,13 @@ const styles = {
     zIndex:          1,
     width:           "100%",
     maxWidth:        "420px",
-    background:      "rgba(22, 28, 45, 0.85)",
+    background:      "rgba(255,255,255,0.92)",
     backdropFilter:  "blur(20px)",
     WebkitBackdropFilter: "blur(20px)",
-    border:          "1px solid rgba(100,116,139,0.18)",
+    border:          "1px solid rgba(15,23,42,0.12)",
     borderRadius:    "20px",
     padding:         "40px",
-    boxShadow:       "0 25px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05)",
+    boxShadow:       "0 25px 60px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.6)",
   },
   logoWrap: {
     display:         "flex",
@@ -231,24 +231,24 @@ const styles = {
   logoIcon: {
     width:           "48px",
     height:          "48px",
-    background:      "linear-gradient(135deg, rgba(99,102,241,0.3), rgba(6,182,212,0.2))",
+    background:      "linear-gradient(135deg, rgba(127,20,22,0.3), rgba(127,20,22,0.14))",
     borderRadius:    "14px",
     display:         "flex",
     alignItems:      "center",
     justifyContent:  "center",
     fontSize:        "24px",
-    border:          "1px solid rgba(99,102,241,0.3)",
+    border:          "1px solid rgba(127,20,22,0.28)",
     flexShrink:      0,
   },
   logoName: {
     fontSize:        "18px",
     fontWeight:      700,
-    color:           "#e2e8f0",
+    color:           "#1f2937",
     letterSpacing:   "-0.3px",
   },
   logoSub: {
     fontSize:        "11px",
-    color:           "#64748b",
+    color:           "#475569",
     letterSpacing:   "0.5px",
     textTransform:   "uppercase",
     marginTop:       "2px",
@@ -259,13 +259,13 @@ const styles = {
   heading: {
     fontSize:        "24px",
     fontWeight:      700,
-    color:           "#e2e8f0",
+    color:           "#1f2937",
     margin:          "0 0 6px",
     letterSpacing:   "-0.5px",
   },
   subheading: {
     fontSize:        "14px",
-    color:           "#64748b",
+    color:           "#475569",
     margin:          0,
     lineHeight:      1.5,
   },
@@ -282,7 +282,7 @@ const styles = {
   label: {
     fontSize:        "13px",
     fontWeight:      500,
-    color:           "#94a3b8",
+    color:           "#475569",
     letterSpacing:   "0.2px",
   },
   inputWrap: {
@@ -300,10 +300,10 @@ const styles = {
   input: {
     width:           "100%",
     padding:         "12px 14px 12px 42px",
-    background:      "rgba(15,17,23,0.6)",
-    border:          "1px solid rgba(100,116,139,0.2)",
+    background:      "rgba(255,255,255,0.92)",
+    border:          "1px solid rgba(15,23,42,0.12)",
     borderRadius:    "10px",
-    color:           "#e2e8f0",
+    color:           "#1f2937",
     fontSize:        "14px",
     transition:      "border-color 0.2s, box-shadow 0.2s",
     boxSizing:       "border-box",
@@ -319,13 +319,13 @@ const styles = {
     padding:         "4px",
     display:         "flex",
     alignItems:      "center",
-    color:           "#64748b",
+    color:           "#7f1416",
     lineHeight:      1,
   },
   submitBtn: {
     marginTop:       "8px",
     padding:         "13px",
-    background:      "linear-gradient(135deg, #6366f1, #4f46e5)",
+    background:      "linear-gradient(135deg, #7f1416, #5f1011)",
     border:          "none",
     borderRadius:    "10px",
     color:           "#fff",
@@ -333,7 +333,7 @@ const styles = {
     fontWeight:      600,
     letterSpacing:   "0.2px",
     transition:      "transform 0.15s, box-shadow 0.15s, opacity 0.15s",
-    boxShadow:       "0 4px 15px rgba(99,102,241,0.3)",
+    boxShadow:       "0 4px 15px rgba(127,20,22,0.3)",
     fontFamily:      "inherit",
   },
   loadingInner: {
@@ -355,7 +355,7 @@ const styles = {
     marginTop:       "24px",
     textAlign:       "center",
     fontSize:        "11px",
-    color:           "#334155",
+    color:           "#475569",
     letterSpacing:   "0.3px",
   },
 };
