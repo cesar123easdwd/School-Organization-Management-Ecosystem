@@ -11,22 +11,23 @@ const Payments = () => {
   const [loading, setLoading]             = useState(true);
   const [search, setSearch]               = useState('');
   const [filter, setFilter]               = useState('All');
-  const [showModal, setShowModal]         = useState(false);
+
+  const fetchTransactions = async () => {
+    setLoading(true);
+    try {
+      const result = await transactionService.getTransactions();
+      setTransactions(result.transactions || []);
+    } catch (error) {
+      console.error('[Payments] failed to load transactions', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchTransactions = async () => {
-      setLoading(true);
-      try {
-        const result = await transactionService.getTransactions();
-        setTransactions(result.transactions || []);
-      } catch (error) {
-        console.error('[Payments] failed to load transactions', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchTransactions();
+    const interval = setInterval(fetchTransactions, 10000);
+    return () => clearInterval(interval);
   }, []);
 
   const totalCollected = transactions.filter(p => p.status === 'Paid').reduce((acc, p) => acc + (p.amount || 0), 0);
@@ -46,11 +47,11 @@ const Payments = () => {
       <div className="page-header">
         <div>
           <h1 className="page-title">Payments & Sanctions</h1>
-          <p className="page-desc">Track all member fees and penalty collections</p>
+          <p className="page-desc">Track payment and sanction records synced from connected systems</p>
         </div>
-        <button className="btn-primary" id="add-sanction-btn" onClick={() => setShowModal(true)}>
-          + Add Sanction
-        </button>
+        <div className="status-pill" style={{ background: 'rgba(6,182,212,0.12)', color: '#0891b2', border: '1px solid rgba(6,182,212,0.3)' }}>
+          🔗 Synced from connected systems
+        </div>
       </div>
 
       {/* Summary Cards */}
@@ -64,11 +65,11 @@ const Payments = () => {
           <div className="mini-stat-label">Total Unpaid</div>
         </div>
         <div className="mini-stat-card">
-          <div className="mini-stat-value">{SAMPLE_PAYMENTS.filter(p=>p.status==='Paid').length}</div>
+          <div className="mini-stat-value">{transactions.filter(p => p.status === 'Paid').length}</div>
           <div className="mini-stat-label">Paid Records</div>
         </div>
         <div className="mini-stat-card">
-          <div className="mini-stat-value">{SAMPLE_PAYMENTS.filter(p=>p.status==='Unpaid').length}</div>
+          <div className="mini-stat-value">{transactions.filter(p => p.status === 'Unpaid').length}</div>
           <div className="mini-stat-label">Pending Records</div>
         </div>
       </div>
@@ -86,14 +87,13 @@ const Payments = () => {
               <span className="search-icon">🔍</span>
               <input id="payments-search" className="search-input" placeholder="Search member or reason…" value={search} onChange={e=>setSearch(e.target.value)} />
             </div>
-            <button className="btn-ghost" id="export-payments-btn">⬇ Export</button>
           </div>
         </div>
 
         <div className="table-wrap">
           <table className="data-table">
             <thead>
-              <tr><th>Payment ID</th><th>Member</th><th>Reason</th><th>Amount</th><th>Date</th><th>Status</th><th>Actions</th></tr>
+              <tr><th>Payment ID</th><th>Member</th><th>Reason</th><th>Amount</th><th>Date</th><th>Status</th><th>Source</th></tr>
             </thead>
             <tbody>
               {loading ? (
@@ -105,7 +105,7 @@ const Payments = () => {
               ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan={7} style={{ textAlign:'center', padding:'40px', color:'var(--text-muted)' }}>
-                    No payment records found
+                    No live payment records found. Transactions will appear once members connect.
                   </td>
                 </tr>
               ) : filtered.map(p => {
@@ -119,11 +119,7 @@ const Payments = () => {
                     <td style={{color: status === 'Unpaid' ? '#ef4444' : '#22c55e', fontWeight:600}}>₱{p.amount ?? 0}</td>
                     <td style={{color:'var(--text-secondary)'}}>{p.date ? new Date(p.date).toLocaleDateString('en-PH') : '—'}</td>
                     <td><span className="status-pill" style={{background:s.bg,color:s.color,border:`1px solid ${s.border}`}}>{status}</span></td>
-                    <td><div className="action-btns">
-                      {status === 'Unpaid' && <button className="action-btn view" title="Mark Paid" style={{color:'#22c55e'}}>✓</button>}
-                      <button className="action-btn edit" title="Edit">✏️</button>
-                      <button className="action-btn delete" title="Delete">🗑</button>
-                    </div></td>
+                    <td><span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>Integrated</span></td>
                   </tr>
                 );
               })}
@@ -133,34 +129,6 @@ const Payments = () => {
         <div className="table-footer"><span>{filtered.length} records</span></div>
       </div>
 
-      {/* Modal */}
-      {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal" onClick={e=>e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Add Sanction</h3>
-              <button className="modal-close" onClick={() => setShowModal(false)}>✕</button>
-            </div>
-            <div className="modal-body">
-              <div className="form-group"><label>Member</label>
-                <select className="form-input">
-                  <option>Ana Reyes</option><option>Juan dela Cruz</option><option>Maria Santos</option>
-                  <option>Carlo Mendoza</option><option>Liza Bautista</option><option>Ryan Torres</option>
-                </select>
-              </div>
-              <div className="form-group"><label>Reason</label><input className="form-input" placeholder="e.g. Absence – Foundation Day" /></div>
-              <div className="form-row">
-                <div className="form-group"><label>Amount (₱)</label><input className="form-input" type="number" placeholder="0" /></div>
-                <div className="form-group"><label>Date</label><input className="form-input" type="date" /></div>
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button className="btn-ghost" onClick={() => setShowModal(false)}>Cancel</button>
-              <button className="btn-primary" onClick={() => setShowModal(false)}>Save Sanction</button>
-            </div>
-          </div>
-        </div>
-      )}
     </main>
   );
 };

@@ -88,7 +88,7 @@ const Login = () => {
                 autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@schoolorg.com"
+                placeholder="Enter your email"
                 style={styles.input}
                 disabled={loading}
                 required

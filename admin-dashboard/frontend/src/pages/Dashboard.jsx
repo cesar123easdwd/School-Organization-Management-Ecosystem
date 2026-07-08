@@ -113,6 +113,11 @@ const Dashboard = () => {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
+  useEffect(() => {
+    const interval = setInterval(fetchAll, 10000);
+    return () => clearInterval(interval);
+  }, [fetchAll]);
+
   const stats   = data?.stats   || {};
   const charts  = data?.charts  || {};
   const systems = data?.systems || [];
@@ -221,7 +226,7 @@ const Dashboard = () => {
           {sanctionPie.length === 0 ? (
             <div className="empty-state" style={{ height: 220 }}>
               <span style={{ fontSize: '28px' }}>📊</span>
-              <span>No transaction data yet</span>
+              <span>No live sanction transactions are available yet.</span>
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={220}>
@@ -251,7 +256,7 @@ const Dashboard = () => {
           {logLevels.length === 0 ? (
             <div className="empty-state" style={{ height: 200 }}>
               <span style={{ fontSize: '28px' }}>📋</span>
-              <span>No log data yet</span>
+              <span>No live activity logs are available yet.</span>
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={200}>
@@ -315,7 +320,7 @@ const Dashboard = () => {
           {logs.length === 0 ? (
             <div className="empty-state">
               <span style={{ fontSize: '32px', display: 'block', marginBottom: '8px' }}>🗂️</span>
-              No activity yet. Logs appear here once sub-systems connect.
+              No live activity logs are available yet. Events will appear once connected systems send data.
             </div>
           ) : logs.map((log, i) => {
             const colors = { success: '#22c55e', info: '#7f1416', warning: '#f59e0b', error: '#ef4444' };

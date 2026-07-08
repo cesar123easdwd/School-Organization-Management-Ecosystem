@@ -7,18 +7,11 @@ const STATUS_STYLE = {
   Probation: { bg: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: 'rgba(245,158,11,0.3)' },
 };
 
-const STATUS_STYLE = {
-  Active:    { bg: 'rgba(34,197,94,0.12)',  color: '#22c55e', border: 'rgba(34,197,94,0.3)' },
-  Inactive:  { bg: 'rgba(15,23,42,0.12)', color: '#6b7280', border: 'rgba(15,23,42,0.18)' },
-  Probation: { bg: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: 'rgba(245,158,11,0.3)' },
-};
-
 const Members = () => {
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('All');
-  const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
     const fetchMembers = async () => {
@@ -52,9 +45,6 @@ const Members = () => {
           <h1 className="page-title">Members</h1>
           <p className="page-desc">Manage all registered organization members</p>
         </div>
-        <button className="btn-primary" id="add-member-btn" onClick={() => setShowModal(true)}>
-          + Add Member
-        </button>
       </div>
 
       {/* Summary Chips */}
@@ -67,7 +57,7 @@ const Members = () => {
           >
             {s}
             <span className="chip-count">
-              {s === 'All' ? SAMPLE_MEMBERS.length : SAMPLE_MEMBERS.filter(m => m.status === s).length}
+              {s === 'All' ? members.length : members.filter(m => (m.status || 'Active') === s).length}
             </span>
           </button>
         ))}
@@ -87,7 +77,6 @@ const Members = () => {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <button className="btn-ghost" id="export-members-btn">⬇ Export</button>
         </div>
 
         <div className="table-wrap">
@@ -100,7 +89,6 @@ const Members = () => {
                 <th>Year Level</th>
                 <th>Status</th>
                 <th>Sanctions</th>
-                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -134,14 +122,7 @@ const Members = () => {
                     <td style={{ color: m.sanctions && m.sanctions !== '₱0' ? '#f59e0b' : 'var(--text-secondary)' }}>
                       {m.sanctions || '₱0'}
                     </td>
-                      <td>
-                        <div className="action-btns">
-                          <button className="action-btn view" title="View">👁</button>
-                          <button className="action-btn edit" title="Edit">✏️</button>
-                          <button className="action-btn delete" title="Remove">🗑</button>
-                        </div>
-                      </td>
-                    </tr>
+                  </tr>
                   );
                 })
               )}
@@ -154,45 +135,6 @@ const Members = () => {
         </div>
       </div>
 
-      {/* Add Member Modal */}
-      {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Add New Member</h3>
-              <button className="modal-close" onClick={() => setShowModal(false)}>✕</button>
-            </div>
-            <div className="modal-body">
-              <div className="form-group">
-                <label>Full Name</label>
-                <input className="form-input" placeholder="e.g. Juan dela Cruz" />
-              </div>
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Course</label>
-                  <select className="form-input">
-                    <option>BSCS</option><option>BSIT</option><option>BSECE</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label>Year Level</label>
-                  <select className="form-input">
-                    <option>1st Year</option><option>2nd Year</option><option>3rd Year</option><option>4th Year</option>
-                  </select>
-                </div>
-              </div>
-              <div className="form-group">
-                <label>Email</label>
-                <input className="form-input" type="email" placeholder="student@school.edu.ph" />
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button className="btn-ghost" onClick={() => setShowModal(false)}>Cancel</button>
-              <button className="btn-primary" onClick={() => setShowModal(false)}>Save Member</button>
-            </div>
-          </div>
-        </div>
-      )}
     </main>
   );
 };

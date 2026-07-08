@@ -45,14 +45,14 @@ const AddUserModal = ({ onClose, onCreated }) => {
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
             <div className="form-group"><label>Full Name *</label>
-              <input name="name" className="form-input" placeholder="Juan dela Cruz" value={form.name} onChange={handleChange} required />
+              <input name="name" className="form-input" placeholder="Enter full name" value={form.name} onChange={handleChange} required />
             </div>
             <div className="form-group"><label>Email Address *</label>
-              <input name="email" type="email" className="form-input" placeholder="juan@schoolorg.com" value={form.email} onChange={handleChange} required />
+              <input name="email" type="email" className="form-input" placeholder="Enter email address" value={form.email} onChange={handleChange} required />
             </div>
             <div className="form-row">
               <div className="form-group"><label>Password *</label>
-                <input name="password" type="password" className="form-input" placeholder="Min. 6 characters" value={form.password} onChange={handleChange} required />
+                <input name="password" type="password" className="form-input" placeholder="Create a secure password" value={form.password} onChange={handleChange} required />
               </div>
               <div className="form-group"><label>Role</label>
                 <select name="role" className="form-input" value={form.role} onChange={handleChange}>

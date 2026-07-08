@@ -14,7 +14,6 @@ const Events = () => {
   const [loading, setLoading]       = useState(true);
   const [search, setSearch]         = useState('');
   const [filter, setFilter]         = useState('All');
-  const [showModal, setShowModal]   = useState(false);
   const [view, setView]             = useState('list'); // 'list' | 'grid'
 
   useEffect(() => {
@@ -44,11 +43,11 @@ const Events = () => {
       <div className="page-header">
         <div>
           <h1 className="page-title">Events</h1>
-          <p className="page-desc">Create and manage organization events</p>
+          <p className="page-desc">View events synchronized from connected systems</p>
         </div>
-        <button className="btn-primary" id="add-event-btn" onClick={() => setShowModal(true)}>
-          + New Event
-        </button>
+        <div className="status-pill" style={{ background: 'rgba(6,182,212,0.12)', color: '#0891b2', border: '1px solid rgba(6,182,212,0.3)' }}>
+          🔗 Synced from connected systems
+        </div>
       </div>
 
       {/* Stats Row */}
@@ -89,7 +88,7 @@ const Events = () => {
           <div className="table-wrap">
             <table className="data-table">
               <thead>
-                <tr><th>Event ID</th><th>Title</th><th>Date & Time</th><th>Venue</th><th>Type</th><th>Status</th><th>Actions</th></tr>
+                <tr><th>Event ID</th><th>Title</th><th>Date & Time</th><th>Venue</th><th>Type</th><th>Status</th><th>Source</th></tr>
               </thead>
               <tbody>
                 {loading ? (
@@ -115,11 +114,7 @@ const Events = () => {
                       <td>{ev.location || '—'}</td>
                       <td><span>{TYPE_ICONS[ev.type] || '📅'} {ev.type || 'Event'}</span></td>
                       <td><span className="status-pill" style={{background:s.bg,color:s.color,border:`1px solid ${s.border}`}}>{status}</span></td>
-                      <td><div className="action-btns">
-                        <button className="action-btn view" title="View">👁</button>
-                        <button className="action-btn edit" title="Edit">✏️</button>
-                        <button className="action-btn delete" title="Delete">🗑</button>
-                      </div></td>
+                      <td><span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>Integrated</span></td>
                     </tr>
                   );
                 })}
@@ -148,38 +143,6 @@ const Events = () => {
 
         <div className="table-footer"><span>{filtered.length} events</span></div>
       </div>
-
-      {/* Modal */}
-      {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal" onClick={e=>e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Create New Event</h3>
-              <button className="modal-close" onClick={() => setShowModal(false)}>✕</button>
-            </div>
-            <div className="modal-body">
-              <div className="form-group"><label>Event Title</label><input className="form-input" placeholder="e.g. General Assembly" /></div>
-              <div className="form-row">
-                <div className="form-group"><label>Date</label><input className="form-input" type="date" /></div>
-                <div className="form-group"><label>Time</label><input className="form-input" type="time" /></div>
-              </div>
-              <div className="form-group"><label>Venue</label><input className="form-input" placeholder="e.g. Auditorium" /></div>
-              <div className="form-row">
-                <div className="form-group"><label>Type</label>
-                  <select className="form-input"><option>Assembly</option><option>Seminar</option><option>Celebration</option><option>Sports</option><option>Social</option></select>
-                </div>
-                <div className="form-group"><label>Status</label>
-                  <select className="form-input"><option>Upcoming</option><option>Ongoing</option></select>
-                </div>
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button className="btn-ghost" onClick={() => setShowModal(false)}>Cancel</button>
-              <button className="btn-primary" onClick={() => setShowModal(false)}>Create Event</button>
-            </div>
-          </div>
-        </div>
-      )}
     </main>
   );
 };

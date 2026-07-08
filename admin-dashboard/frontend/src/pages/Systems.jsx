@@ -74,11 +74,11 @@ const AddSystemModal = ({ onClose, onCreated }) => {
             <div className="modal-body">
               <div className="form-group">
                 <label>System Name *</label>
-                <input name="name" className="form-input" placeholder="e.g. Member Registration" value={form.name} onChange={handleChange} required />
+                <input name="name" className="form-input" placeholder="Enter system name" value={form.name} onChange={handleChange} required />
               </div>
               <div className="form-group">
                 <label>Description</label>
-                <input name="description" className="form-input" placeholder="Short description of this system" value={form.description} onChange={handleChange} />
+                <input name="description" className="form-input" placeholder="Brief description of this integration" value={form.description} onChange={handleChange} />
               </div>
               <div className="form-row">
                 <div className="form-group">
@@ -93,7 +93,7 @@ const AddSystemModal = ({ onClose, onCreated }) => {
                 </div>
                 <div className="form-group">
                   <label>Base URL</label>
-                  <input name="baseUrl" className="form-input" placeholder="http://localhost:5001" value={form.baseUrl} onChange={handleChange} />
+                  <input name="baseUrl" className="form-input" placeholder="https://your-subsystem-url" value={form.baseUrl} onChange={handleChange} />
                 </div>
               </div>
             </div>
@@ -196,7 +196,7 @@ const Systems = () => {
         {loading ? (
           <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Loading systems…</p>
         ) : systems.length === 0 ? (
-          <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>No systems registered. Click "Add System" to register one.</p>
+          <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>No connected systems registered yet. Register the systems you want the admin dashboard to monitor.</p>
         ) : systems.map((sys, i) => {
           const meta = MODULE_ICON[sys.module] || MODULE_ICON.other;
           return (
@@ -239,14 +239,6 @@ const Systems = () => {
                   style={{ flex: 1 }}
                 >
                   {testing === sys._id ? '⏳ Testing…' : '⚡ Test Connection'}
-                </button>
-                <button
-                  className="btn-ghost"
-                  id={`config-sys-${sys._id}-btn`}
-                  style={{ flex: 1 }}
-                  onClick={() => toast('Configuration coming soon.', { icon: '🔧' })}
-                >
-                  ⚙ Configure
                 </button>
               </div>
             </div>

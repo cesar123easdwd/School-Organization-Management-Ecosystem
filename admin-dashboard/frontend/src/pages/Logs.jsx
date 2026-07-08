@@ -36,7 +36,11 @@ const Logs = () => {
     }
   }, []);
 
-  useEffect(() => { fetchLogs(); }, [fetchLogs]);
+  useEffect(() => {
+    fetchLogs();
+    const interval = setInterval(fetchLogs, 10000);
+    return () => clearInterval(interval);
+  }, [fetchLogs]);
 
   /* Apply filter + search */
   const filtered = allLogs.filter(log => {
@@ -64,7 +68,6 @@ const Logs = () => {
           <button className="btn-ghost" id="refresh-logs-btn" onClick={fetchLogs} disabled={loading}>
             {loading ? '⟳ Loading…' : '↻ Refresh'}
           </button>
-          <button className="btn-ghost" id="export-logs-btn">⬇ Export</button>
         </div>
       </div>
 
@@ -120,13 +123,13 @@ const Logs = () => {
           {loading ? (
             <div className="logs-empty">
               <span className="logs-empty-icon">⟳</span>
-              <span className="logs-empty-text">Loading logs…</span>
+              <span className="logs-empty-text">Loading latest activity…</span>
             </div>
           ) : filtered.length === 0 ? (
             <div className="logs-empty" id="logs-empty-state">
               <span className="logs-empty-icon">🗂️</span>
-              <span className="logs-empty-text">No logs found</span>
-              <span className="logs-empty-sub">Adjust your filter or search query</span>
+              <span className="logs-empty-text">No activity logs are available yet.</span>
+              <span className="logs-empty-sub">Live events will appear here as systems connect.</span>
             </div>
           ) : filtered.map(log => {
             const s = LOG_STYLE[log.level] || LOG_STYLE.info;

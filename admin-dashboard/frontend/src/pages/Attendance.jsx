@@ -49,9 +49,11 @@ const Attendance = () => {
       <div className="page-header">
         <div>
           <h1 className="page-title">Attendance</h1>
-          <p className="page-desc">Monitor member attendance across all events</p>
+          <p className="page-desc">View attendance records synchronized from connected systems</p>
         </div>
-        <button className="btn-primary" id="mark-attendance-btn">✅ Mark Attendance</button>
+        <div className="status-pill" style={{ background: 'rgba(6,182,212,0.12)', color: '#0891b2', border: '1px solid rgba(6,182,212,0.3)' }}>
+          🔗 Synced from connected systems
+        </div>
       </div>
 
       {/* Rate Card */}
@@ -107,7 +109,7 @@ const Attendance = () => {
         <div className="table-wrap">
           <table className="data-table">
             <thead>
-              <tr><th>Record ID</th><th>Member</th><th>Event</th><th>Date</th><th>Time In</th><th>Status</th><th>Actions</th></tr>
+              <tr><th>Record ID</th><th>Member</th><th>Event</th><th>Date</th><th>Time In</th><th>Status</th><th>Source</th></tr>
             </thead>
             <tbody>
               {loading ? (
@@ -133,10 +135,7 @@ const Attendance = () => {
                     <td style={{color:'var(--text-secondary)'}}>{r.date ? new Date(r.date).toLocaleDateString('en-PH') : '—'}</td>
                     <td style={{color:'var(--text-secondary)'}}>{r.timeIn || r.time || '—'}</td>
                     <td><span className="status-pill" style={{background:s.bg,color:s.color,border:`1px solid ${s.border}`}}>{status}</span></td>
-                    <td><div className="action-btns">
-                      <button className="action-btn edit" title="Edit">✏️</button>
-                      <button className="action-btn delete" title="Remove">🗑</button>
-                    </div></td>
+                    <td><span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>Imported</span></td>
                   </tr>
                 );
               })}
