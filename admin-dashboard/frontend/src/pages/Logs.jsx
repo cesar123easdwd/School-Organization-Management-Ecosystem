@@ -49,7 +49,7 @@ const Logs = () => {
     setLoading(true);
     try {
       const data = await integrationService.getLogs({ limit: 100 });
-      setAllLogs([]);
+      setAllLogs(data ?? []);
     } catch (err) {
       toast.error('Failed to load activity logs.');
       console.error('[Logs]', err.message);

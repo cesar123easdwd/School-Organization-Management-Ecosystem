@@ -101,7 +101,6 @@ const Dashboard = () => {
   }, []);
 
   const stats   = {};
-  const charts  = {};
   const systems = [];
   const logs    = [];
 

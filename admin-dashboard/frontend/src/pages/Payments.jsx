@@ -31,7 +31,7 @@ const Payments = () => {
       setLoading(true);
       try {
         const result = await transactionService.getTransactions();
-        setTransactions([]);
+        setTransactions(result ?? []);
       } catch (error) {
         console.error('[Payments] failed to load transactions', error);
       } finally {
