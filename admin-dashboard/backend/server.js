@@ -11,7 +11,19 @@ const app = express();
 
 // ── Global Middleware ──────────────────────────────────────────────
 app.use(cors({
-  origin: ["http://localhost:3000", "http://localhost:5173"],
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, Postman, curl)
+    if (!origin) return callback(null, true);
+    const allowed = [
+      "http://localhost:3000",
+      "http://localhost:5173",
+    ];
+    // Allow any *.vercel.app deployment
+    if (allowed.includes(origin) || /\.vercel\.app$/.test(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error(`CORS: origin ${origin} not allowed`), false);
+  },
   credentials: true,
 }));
 app.use(express.json());
