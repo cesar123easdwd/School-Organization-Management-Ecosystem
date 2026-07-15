@@ -28,11 +28,20 @@ const Members = () => {
     fetchMembers();
   }, []);
 
+  // Helper: resolve name and year regardless of which field set the sub-system used
+  const resolveName = (m) =>
+    m.fullName ||
+    (m.firstName ? `${m.firstName}${m.middleName ? ` ${m.middleName}` : ''} ${m.lastName}`.trim() : '') ||
+    m.memberName ||
+    'Unknown';
+  const resolveYear = (m) => m.year || m.yearLevel || '—';
+  const resolveId   = (m) => m.studentId || m.memberId || m._id || '—';
+
   const filtered = members.filter((m) => {
-    const name = (m.fullName || m.memberName || '').toLowerCase();
-    const id = (m.memberId || m._id || '').toString().toLowerCase();
+    const name = resolveName(m).toLowerCase();
+    const id   = resolveId(m).toString().toLowerCase();
     const matchSearch = name.includes(search.toLowerCase()) || id.includes(search.toLowerCase());
-    const status = m.status || 'Active';
+    const status = m.status || m.membershipStatus || 'Active';
     const matchFilter = filter === 'All' || status === filter;
     return matchSearch && matchFilter;
   });
@@ -106,14 +115,14 @@ const Members = () => {
               </tr>
             ) : (
               filtered.map((m) => {
-                const status = m.status || 'Active';
+                const status = m.status || m.membershipStatus || 'Active';
                 const s = STATUS_STYLE[status] || STATUS_STYLE.Active;
                 return (
-                  <tr key={m.memberId || m._id} className="table-row">
-                    <td><code className="id-badge">{m.memberId || m._id || '—'}</code></td>
-                    <td><span className="member-name">{m.fullName || m.memberName || 'Unknown'}</span></td>
+                  <tr key={m._id} className="table-row">
+                    <td><code className="id-badge">{resolveId(m)}</code></td>
+                    <td><span className="member-name">{resolveName(m)}</span></td>
                     <td>{m.course || '—'}</td>
-                    <td>{m.year || '—'}</td>
+                    <td>{resolveYear(m)}</td>
                     <td>
                       <span className="status-pill" style={{ background: s.bg, color: s.color, border: `1px solid ${s.border}` }}>
                         {status}
@@ -123,8 +132,8 @@ const Members = () => {
                       {m.sanctions || '₱0'}
                     </td>
                   </tr>
-                  );
-                })
+                );
+              })
               )}
             </tbody>
           </table>
