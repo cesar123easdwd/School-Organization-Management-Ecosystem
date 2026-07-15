@@ -6,6 +6,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import useAuth from '../hooks/useAuth';
+import dashboardService from '../services/dashboardService';
 
 /* ── Constants ────────────────────────────────────────────────────── */
 const PIE_COLORS    = { Paid: '#22c55e', Unpaid: '#ef4444', Waived: '#f59e0b' };
@@ -35,7 +36,7 @@ const StatCard = ({ icon, label, value, sub, trend, trendUp, color, loading }) =
       <div className="stat-card-icon" style={{ background: `${color}22`, border: `1px solid ${color}44` }}>
         {icon}
       </div>
-      {trend !== undefined && (
+      {trend !== undefined && trend !== null && (
         <span style={{
           fontSize: '11px', fontWeight: 600,
           color: trendUp ? '#22c55e' : '#ef4444',
@@ -93,20 +94,34 @@ const Dashboard = () => {
   const greeting  = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
   const firstName = user?.name?.split(' ')[0] || 'Admin';
 
-  const [loading, setLoading] = useState(true);
+  const [loading,    setLoading]    = useState(true);
+  const [stats,      setStats]      = useState({});
+  const [systems,    setSystems]    = useState([]);
+  const [logs,       setLogs]       = useState([]);
+  const [monthly,    setMonthly]    = useState([]);
+  const [sanctionPie,setSanctionPie]= useState([]);
+  const [logLevels,  setLogLevels]  = useState([]);
 
   useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 200);
-    return () => clearTimeout(timer);
+    const load = async () => {
+      try {
+        const data = await dashboardService.getStats();
+        if (data?.success) {
+          setStats(data.stats       ?? {});
+          setSystems(data.systems   ?? []);
+          setLogs(data.recentLogs   ?? []);
+          setMonthly(data.charts?.monthly      ?? []);
+          setSanctionPie(data.charts?.sanctionPie ?? []);
+          setLogLevels(data.charts?.logLevels  ?? []);
+        }
+      } catch (err) {
+        console.error('[Dashboard] failed to load stats:', err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
   }, []);
-
-  const stats   = {};
-  const systems = [];
-  const logs    = [];
-
-  const monthly     = [];
-  const sanctionPie = [];
-  const logLevels   = [];
 
   return (
     <main className="page-body" id="dashboard-page" role="main">
@@ -128,34 +143,34 @@ const Dashboard = () => {
       {/* ── Stat Cards ──────────────────────────────────────────── */}
       <div className="stats-grid">
         <StatCard loading={loading} icon="👥" label="Total Members"       color="#7f1416"
-          value={loading ? '…' : '—'}
-          sub="No data yet"
+          value={stats.totalMembers ?? 0}
+          sub={`${stats.totalMembers ?? 0} registered members`}
           trend={null}
           trendUp={true} />
         <StatCard loading={loading} icon="🔗" label="Online Systems"      color="#06b6d4"
-          value={loading ? '…' : '—'}
-          sub="No data yet"
+          value={stats.onlineSystems ?? 0}
+          sub={`of ${systems.length} registered`}
           trend={null}
           trendUp={true} />
         <StatCard loading={loading} icon="💰" label="Collected Sanctions" color="#22c55e"
-          value={loading ? '…' : '—'}
-          sub="No data yet"
+          value={`₱${(stats.collectedSanctions ?? 0).toLocaleString()}`}
+          sub="Total paid"
           trend={null}
           trendUp={true} />
         <StatCard loading={loading} icon="⚠️" label="Unpaid Sanctions"   color="#f59e0b"
-          value={loading ? '…' : '—'}
-          sub="No data yet"
+          value={`₱${(stats.unpaidSanctions ?? 0).toLocaleString()}`}
+          sub="Outstanding balance"
           trend={null}
-          trendUp={true} />
+          trendUp={false} />
       </div>
 
       {/* ── Secondary KPI Row ───────────────────────────────────── */}
       <div className="mini-stats-row">
         {[
-          { icon: '📅', label: 'Events Logged',      value: '—' },
-          { icon: '📋', label: 'Total Transactions',  value: '—' },
-          { icon: '⚡', label: "Today's Activity",    value: '—' },
-          { icon: '🖥', label: 'Systems Registered',  value: '—' },
+          { icon: '📅', label: 'Events Logged',      value: stats.totalEvents      ?? 0 },
+          { icon: '📋', label: 'Total Transactions',  value: stats.totalTransactions ?? 0 },
+          { icon: '⚡', label: "Today's Activity",    value: stats.todayActivity     ?? 0 },
+          { icon: '🖥', label: 'Systems Registered',  value: systems.length },
         ].map(k => (
           <div key={k.label} className="mini-stat-card">
             <div className="mini-stat-value">
