@@ -120,7 +120,7 @@ const Payments = () => {
         <div className="table-wrap">
           <table className="data-table">
             <thead>
-              <tr><th>Payment ID</th><th>Member</th><th>Reason</th><th>Amount</th><th>Date</th><th>Status</th></tr>
+              <tr><th>Payment ID</th><th>Member</th><th>Event</th><th>Amount</th><th>Date</th><th>Status</th></tr>
             </thead>
             <tbody>
               {loading ? (
