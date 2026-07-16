@@ -116,6 +116,8 @@ paths:
                   type: string
                 year:
                   type: integer
+                organization:
+                  type: string
                 status:
                   type: string
       responses:

@@ -28,6 +28,11 @@ const getMembers = async (req, res) => {
         obj.memberId = obj.studentId;
       }
 
+      // Normalize organization-related fields from older database records
+      if (!obj.organization) {
+        obj.organization = obj.organizationJoined || obj.organizationName || obj.orgName || obj.organizationInvolved || obj.involvedOrganization || "";
+      }
+
       // Normalize status — prefer membershipStatus if status is missing
       if (!obj.status && obj.membershipStatus) {
         obj.status = obj.membershipStatus;
@@ -43,4 +48,4 @@ const getMembers = async (req, res) => {
   }
 };
 
-module.exports = { getMembers };
+module.exports = { getMembers };

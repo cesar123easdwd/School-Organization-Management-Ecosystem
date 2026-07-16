@@ -42,6 +42,11 @@ const memberSchema = new mongoose.Schema(
       trim: true,
       default: "",
     },
+    organization: {
+      type: String,
+      trim: true,
+      default: "",
+    },
     status: {
       type: String,
       trim: true,

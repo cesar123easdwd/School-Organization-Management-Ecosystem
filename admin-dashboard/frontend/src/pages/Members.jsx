@@ -36,11 +36,13 @@ const Members = () => {
     'Unknown';
   const resolveYear = (m) => m.year || m.yearLevel || '—';
   const resolveId   = (m) => m.studentId || m.memberId || m._id || '—';
+  const resolveOrganization = (m) => m.organization || m.organizationName || m.orgName || m.organizationJoined || m.organizationInvolved || '—';
 
   const filtered = members.filter((m) => {
     const name = resolveName(m).toLowerCase();
     const id   = resolveId(m).toString().toLowerCase();
-    const matchSearch = name.includes(search.toLowerCase()) || id.includes(search.toLowerCase());
+    const organization = resolveOrganization(m).toLowerCase();
+    const matchSearch = name.includes(search.toLowerCase()) || id.includes(search.toLowerCase()) || organization.includes(search.toLowerCase());
     const status = m.status || m.membershipStatus || 'Active';
     const matchFilter = filter === 'All' || status === filter;
     return matchSearch && matchFilter;
@@ -98,6 +100,7 @@ const Members = () => {
                 <th>Full Name</th>
                 <th>Course</th>
                 <th>Year Level</th>
+                <th>Organization</th>
                 <th>Status</th>
                 <th>Sanctions</th>
               </tr>
@@ -105,13 +108,13 @@ const Members = () => {
             <tbody>
               {loading ? (
               <tr>
-                <td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '40px' }}>
+                <td colSpan={8} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '40px' }}>
                   Loading members…
                 </td>
               </tr>
             ) : filtered.length === 0 ? (
               <tr>
-                <td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '40px' }}>
+                <td colSpan={8} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '40px' }}>
                   No members found
                 </td>
               </tr>
@@ -125,6 +128,7 @@ const Members = () => {
                     <td><span className="member-name">{resolveName(m)}</span></td>
                     <td>{m.course || '—'}</td>
                     <td>{resolveYear(m)}</td>
+                    <td>{resolveOrganization(m)}</td>
                     <td>
                       <span className="status-pill" style={{ background: s.bg, color: s.color, border: `1px solid ${s.border}` }}>
                         {status}

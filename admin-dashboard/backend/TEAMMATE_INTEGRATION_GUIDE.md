@@ -15,6 +15,12 @@ The Admin Dashboard acts as the **central hub** of the system. Your sub-system m
 
 You do **not** need to build your own authentication. The Admin API authenticates your system via an **API key** in the request header.
 
+## Current Status
+
+- The **Systems** page shows a subsystem as online only after it sends `POST /api/integration/ping`.
+- Online status is based on recent ping activity, not a manual toggle.
+- Attendance records now store `eventTitle`, `date`, and `timeIn` automatically on the backend.
+
 ---
 
 ## Your API Keys
@@ -48,6 +54,9 @@ If the key is wrong or missing, you'll get:
 ## Step 0 — Ping on Startup (Required by ALL teammates)
 
 Call this **once when your backend server starts** so the dashboard shows you as "Online".
+
+> [!IMPORTANT]
+> The dashboard uses your latest ping to decide whether the system is online. If you do not ping after startup, your system will appear offline.
 
 ```http
 POST http://localhost:5000/api/integration/ping
@@ -113,6 +122,7 @@ x-api-key: sk_39cbeaea5f83769b592adb03ba800af502726f7c2f88de35
   "email":     "maria.santos@email.com",
   "course":    "BSIT",
   "year":      2,
+  "organization": "Student Council",
   "status":    "Active"
 }
 ```
@@ -125,6 +135,7 @@ x-api-key: sk_39cbeaea5f83769b592adb03ba800af502726f7c2f88de35
 | `email` | string | No | Member's email |
 | `course` | string | No | e.g. BSIT, BSCS, BSBA |
 | `year` | number | No | Year level (1–4) |
+| `organization` | string | No | Organization, club, or group the member joined or is involved in |
 | `status` | string | No | `"Active"` or `"Inactive"` |
 
 ### Success Response
@@ -139,6 +150,7 @@ x-api-key: sk_39cbeaea5f83769b592adb03ba800af502726f7c2f88de35
     "email":     "maria.santos@email.com",
     "course":    "BSIT",
     "year":      2,
+    "organization": "Student Council",
     "status":    "Active"
   }
 }
@@ -165,6 +177,7 @@ async function syncMember(member) {
       email:     member.email,
       course:    member.course,
       year:      member.year,
+      organization: member.organization,
       status:    member.isActive ? 'Active' : 'Inactive',
     }, {
       headers: { 'x-api-key': API_KEY },
@@ -288,8 +301,10 @@ x-api-key: sk_33794c5b22a7f9bcac98d52a3222ea59f1c827bca0f16ec1
 | `eventTitle` | string | **Yes** | Name of the event |
 | `memberId` | string | No | Your system's member ID |
 | `memberName` | string | **Yes** | Full name of the member |
-| `status` | string | No | `"Present"`, `"Absent"`, `"Excused"`, `"Late"` |
+| `status` | string | No | `"Present"`, `"Absent"`, or `"Late"` |
 | `remarks` | string | No | Additional notes |
+
+The backend also stores `date` and `timeIn` for each attendance record automatically, so the dashboard can display them directly.
 
 ### ⚡ Auto-Sanction Feature
 
@@ -332,7 +347,7 @@ async function syncAttendance(record) {
       eventTitle: record.eventTitle,
       memberId:   record.memberId,
       memberName: record.memberName,
-      status:     record.status,   // "Present", "Absent", "Excused", "Late"
+      status:     record.status,   // "Present", "Absent", or "Late"
       remarks:    record.remarks,
     }, {
       headers: { 'x-api-key': process.env.ADMIN_API_KEY },
@@ -399,11 +414,7 @@ x-api-key: sk_97fb1302de285120dd9c85cd7e7118db6df71af558f52b90
 ### Updating Payment Status (Marking as Paid)
 
 > [!NOTE]
-> To mark a payment as "Paid", use the `paymentId` returned above and call:
-> ```
-> PUT http://localhost:5000/api/systems  (coming soon)
-> ```
-> For now, coordinate with Cesar (Admin Dashboard) to update payment statuses manually through the admin panel.
+> The current Admin API does not expose a dedicated payment-status update endpoint yet. Coordinate with Cesar (Admin Dashboard) to update payment statuses manually through the admin panel for now.
 
 ### When to call this
 - When a new sanction is created manually in your system
