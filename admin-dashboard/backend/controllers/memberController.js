@@ -1,5 +1,41 @@
 const Member = require("../models/member");
 
+const normalizeOrganization = (member) => {
+  const candidate =
+    member.organization ||
+    member.organizationJoined ||
+    member.organizationName ||
+    member.orgName ||
+    member.organizationInvolved ||
+    member.involvedOrganization ||
+    member.organizationLabel ||
+    member.systemName;
+
+  if (typeof candidate === "string") {
+    return candidate.trim();
+  }
+
+  if (candidate && typeof candidate === "object") {
+    return (
+      candidate.name ||
+      candidate.label ||
+      candidate.title ||
+      candidate.value ||
+      ""
+    ).toString().trim();
+  }
+
+  if (Array.isArray(candidate)) {
+    return candidate
+      .map((item) => (typeof item === "string" ? item : item?.name || item?.label || item?.title || item?.value || ""))
+      .filter(Boolean)
+      .join(", ")
+      .trim();
+  }
+
+  return "";
+};
+
 const getMembers = async (req, res) => {
   try {
     const members = await Member.find().sort({ lastSyncedAt: -1, createdAt: -1 });
@@ -30,7 +66,11 @@ const getMembers = async (req, res) => {
 
       // Normalize organization-related fields from older database records
       if (!obj.organization) {
-        obj.organization = obj.organizationJoined || obj.organizationName || obj.orgName || obj.organizationInvolved || obj.involvedOrganization || "";
+        obj.organization = normalizeOrganization(obj);
+      }
+
+      if (obj.organization && typeof obj.organization !== "string") {
+        obj.organization = normalizeOrganization(obj);
       }
 
       // Normalize status — prefer membershipStatus if status is missing

@@ -37,7 +37,37 @@ const Members = () => {
     'Unknown';
   const resolveYear = (m) => m.year || m.yearLevel || '—';
   const resolveId   = (m) => m.studentId || m.memberId || m._id || '—';
-  const resolveOrganization = (m) => m.organization || m.organizationName || m.orgName || m.organizationJoined || m.organizationInvolved || '—';
+  const resolveOrganization = (m) => {
+    const candidate =
+      m.organization ||
+      m.organizationJoined ||
+      m.organizationName ||
+      m.orgName ||
+      m.organizationInvolved ||
+      m.involvedOrganization ||
+      m.organizationLabel ||
+      m.systemName;
+
+    if (typeof candidate === 'string') {
+      return candidate.trim() || '—';
+    }
+
+    if (candidate && typeof candidate === 'object') {
+      return candidate.name || candidate.label || candidate.title || candidate.value || '—';
+    }
+
+    if (Array.isArray(candidate)) {
+      const value = candidate
+        .map((item) => (typeof item === 'string' ? item : item?.name || item?.label || item?.title || item?.value || ''))
+        .filter(Boolean)
+        .join(', ')
+        .trim();
+
+      return value || '—';
+    }
+
+    return '—';
+  };
   const resolveStatus = (m) => {
     const raw = (m.status || m.membershipStatus || 'Active').toString().trim();
     const normalized = raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
