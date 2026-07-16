@@ -6,6 +6,13 @@ const Event          = require("../models/event");
 
 const ONLINE_STATUS_WINDOW_MS = 5 * 60 * 1000;
 
+const normalizeTransactionStatus = (rawStatus) => {
+  const value = String(rawStatus || "").trim().toLowerCase();
+  if (value === "paid") return "Paid";
+  if (value === "waived") return "Waived";
+  return "Unpaid";
+};
+
 const getRealtimeSystemStatus = (system) => {
   if (!system?.lastSeen) return 'offline';
   if (system.status === 'error') return 'error';
@@ -28,8 +35,6 @@ const getStats = async (req, res) => {
     const [
       totalMembers,
       totalEvents,
-      collectedTotal,
-      unpaidTotal,
       recentLogs,
       allSystems,
     ] = await Promise.all([
@@ -38,16 +43,6 @@ const getStats = async (req, res) => {
 
       // Count directly from Event collection
       Event.countDocuments(),
-
-      Transaction.aggregate([
-        { $match: { status: "Paid" } },
-        { $group: { _id: null, total: { $sum: "$amount" } } },
-      ]),
-
-      Transaction.aggregate([
-        { $match: { status: "Unpaid" } },
-        { $group: { _id: null, total: { $sum: "$amount" } } },
-      ]),
 
       IntegrationLog.find()
         .sort({ createdAt: -1 })
@@ -106,10 +101,28 @@ const getStats = async (req, res) => {
       };
     });
 
-    /* ── Sanction status pie chart ───────────────────────────────── */
-    const sanctionPie = await Transaction.aggregate([
-      { $group: { _id: "$status", value: { $sum: 1 }, amount: { $sum: "$amount" } } },
-    ]);
+    /* ── Sanction status pie chart + normalized totals ───────────── */
+    const sanctionRaw = await Transaction.find().select("status amount").lean();
+    let normalizedCollectedTotal = 0;
+    let normalizedUnpaidTotal = 0;
+    const sanctionBuckets = sanctionRaw.reduce((acc, row) => {
+      const status = normalizeTransactionStatus(row.status);
+      const amount = Number(row.amount || 0);
+      if (!acc[status]) {
+        acc[status] = { _id: status, value: 0, amount: 0 };
+      }
+      acc[status].value += 1;
+      acc[status].amount += amount;
+
+      if (status === "Paid") {
+        normalizedCollectedTotal += amount;
+      } else {
+        normalizedUnpaidTotal += amount;
+      }
+
+      return acc;
+    }, {});
+    const sanctionPie = Object.values(sanctionBuckets);
 
     /* ── Integration log level breakdown (bar chart) ─────────────── */
     const logLevels = await IntegrationLog.aggregate([
@@ -129,8 +142,8 @@ const getStats = async (req, res) => {
       stats: {
         totalMembers,
         onlineSystems,
-        collectedSanctions: collectedTotal[0]?.total ?? 0,
-        unpaidSanctions:    unpaidTotal[0]?.total    ?? 0,
+        collectedSanctions: normalizedCollectedTotal,
+        unpaidSanctions:    normalizedUnpaidTotal,
         totalEvents,
         totalTransactions,
         todayActivity:      recentActivityCount,

@@ -76,6 +76,7 @@ const transactionSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+    collection: "sanction",
   }
 );
 
