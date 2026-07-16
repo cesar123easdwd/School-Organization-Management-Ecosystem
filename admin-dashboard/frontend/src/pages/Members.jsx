@@ -5,6 +5,7 @@ const STATUS_STYLE = {
   Active:    { bg: 'rgba(34,197,94,0.12)',  color: '#22c55e', border: 'rgba(34,197,94,0.3)' },
   Inactive:  { bg: 'rgba(15,23,42,0.12)', color: '#6b7280', border: 'rgba(15,23,42,0.18)' },
   Probation: { bg: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: 'rgba(245,158,11,0.3)' },
+  Pending:   { bg: 'rgba(6,182,212,0.12)', color: '#0891b2', border: 'rgba(6,182,212,0.3)' },
 };
 
 const Members = () => {
@@ -37,13 +38,18 @@ const Members = () => {
   const resolveYear = (m) => m.year || m.yearLevel || '—';
   const resolveId   = (m) => m.studentId || m.memberId || m._id || '—';
   const resolveOrganization = (m) => m.organization || m.organizationName || m.orgName || m.organizationJoined || m.organizationInvolved || '—';
+  const resolveStatus = (m) => {
+    const raw = (m.status || m.membershipStatus || 'Active').toString().trim();
+    const normalized = raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
+    return STATUS_STYLE[normalized] ? normalized : raw || 'Active';
+  };
 
   const filtered = members.filter((m) => {
     const name = resolveName(m).toLowerCase();
     const id   = resolveId(m).toString().toLowerCase();
     const organization = resolveOrganization(m).toLowerCase();
     const matchSearch = name.includes(search.toLowerCase()) || id.includes(search.toLowerCase()) || organization.includes(search.toLowerCase());
-    const status = m.status || m.membershipStatus || 'Active';
+    const status = resolveStatus(m);
     const matchFilter = filter === 'All' || status === filter;
     return matchSearch && matchFilter;
   });
@@ -60,7 +66,7 @@ const Members = () => {
 
       {/* Summary Chips */}
       <div className="chip-row">
-        {['All', 'Active', 'Inactive', 'Probation'].map((s) => (
+        {['All', 'Active', 'Pending', 'Probation', 'Inactive'].map((s) => (
           <button
             key={s}
             className={`chip${filter === s ? ' chip-active' : ''}`}
@@ -68,7 +74,7 @@ const Members = () => {
           >
             {s}
             <span className="chip-count">
-              {s === 'All' ? members.length : members.filter(m => (m.status || 'Active') === s).length}
+              {s === 'All' ? members.length : members.filter(m => resolveStatus(m) === s).length}
             </span>
           </button>
         ))}
@@ -120,7 +126,7 @@ const Members = () => {
               </tr>
             ) : (
               filtered.map((m) => {
-                const status = m.status || m.membershipStatus || 'Active';
+                const status = resolveStatus(m);
                 const s = STATUS_STYLE[status] || STATUS_STYLE.Active;
                 return (
                   <tr key={m._id} className="table-row">
