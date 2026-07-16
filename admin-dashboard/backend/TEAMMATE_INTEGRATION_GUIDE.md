@@ -1,7 +1,8 @@
 # Teammate Integration Guide
 ## School Organization Management Ecosystem — Admin API
 
-**Base URL:** `http://localhost:5000/api`
+**Base URL (Production):** `https://school-organization-management-ecosystem.onrender.com/api`
+**Admin Frontend (Production):** `https://school-organization-management-ecos.vercel.app/`
 **Version:** 1.0.0
 **Last Updated:** July 2026
 
@@ -66,7 +67,7 @@ Call this **once when your backend server starts** so the dashboard shows you as
 > The dashboard uses your latest ping to decide whether the system is online. If you do not ping after startup, your system will appear offline.
 
 ```http
-POST http://localhost:5000/api/integration/ping
+POST https://school-organization-management-ecosystem.onrender.com/api/integration/ping
 Content-Type: application/json
 x-api-key: sk_YOUR_KEY_HERE
 ```
@@ -86,7 +87,7 @@ const axios = require('axios');
 
 async function pingAdminDashboard() {
   try {
-    await axios.post('http://localhost:5000/api/integration/ping', {}, {
+    await axios.post('https://school-organization-management-ecosystem.onrender.com/api/integration/ping', {}, {
       headers: { 'x-api-key': process.env.ADMIN_API_KEY },
     });
     console.log('✅ Admin Dashboard notified — system is online.');
@@ -108,7 +109,7 @@ app.listen(PORT, () => {
 
 ### Endpoint
 ```
-POST http://localhost:5000/api/integration/push-member
+POST https://school-organization-management-ecosystem.onrender.com/api/integration/push-member
 ```
 
 ### Headers
@@ -169,7 +170,7 @@ x-api-key: sk_39cbeaea5f83769b592adb03ba800af502726f7c2f88de35
 ```js
 const axios = require('axios');
 
-const ADMIN_API = 'http://localhost:5000/api/integration';
+const ADMIN_API = 'https://school-organization-management-ecosystem.onrender.com/api/integration';
 const API_KEY   = process.env.ADMIN_API_KEY; // store in .env
 
 async function syncMember(member) {
@@ -199,7 +200,7 @@ async function syncMember(member) {
 
 ### Endpoint
 ```
-POST http://localhost:5000/api/integration/push-event
+POST https://school-organization-management-ecosystem.onrender.com/api/integration/push-event
 ```
 
 ### Headers
@@ -255,7 +256,7 @@ x-api-key: sk_8ecd1a0773d0560d760a627f1264bd9bc01c550d14413086
 ```js
 async function syncEvent(event) {
   try {
-    await axios.post('http://localhost:5000/api/integration/push-event', {
+    await axios.post('https://school-organization-management-ecosystem.onrender.com/api/integration/push-event', {
       eventId:     event.id,
       title:       event.title,
       description: event.description,
@@ -278,7 +279,7 @@ async function syncEvent(event) {
 
 ### Endpoint
 ```
-POST http://localhost:5000/api/integration/push-attendance
+POST https://school-organization-management-ecosystem.onrender.com/api/integration/push-attendance
 ```
 
 ### Headers
@@ -346,7 +347,7 @@ The backend also stores `date` and `timeIn` for each attendance record automatic
 ```js
 async function syncAttendance(record) {
   try {
-    const res = await axios.post('http://localhost:5000/api/integration/push-attendance', {
+    const res = await axios.post('https://school-organization-management-ecosystem.onrender.com/api/integration/push-attendance', {
       eventId:    record.eventId,
       eventTitle: record.eventTitle,
       memberId:   record.memberId,
@@ -372,7 +373,7 @@ async function syncAttendance(record) {
 
 ### Endpoint
 ```
-POST http://localhost:5000/api/integration/push-transaction
+POST https://school-organization-management-ecosystem.onrender.com/api/integration/push-transaction
 ```
 
 ### Headers
@@ -432,7 +433,7 @@ Each teammate should add this to their `.env` file:
 
 ```env
 # Admin Dashboard Integration
-ADMIN_API_URL=http://localhost:5000/api
+ADMIN_API_URL=https://school-organization-management-ecosystem.onrender.com/api
 ADMIN_API_KEY=sk_YOUR_KEY_HERE   # replace with YOUR key from the table above
 ```
 
@@ -470,7 +471,7 @@ npm install axios
 Test that your key works by calling ping:
 
 ```http
-POST http://localhost:5000/api/integration/ping
+POST https://school-organization-management-ecosystem.onrender.com/api/integration/ping
 Content-Type: application/json
 x-api-key: sk_YOUR_KEY_HERE
 ```

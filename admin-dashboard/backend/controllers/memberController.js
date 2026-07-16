@@ -1,4 +1,16 @@
 const Member = require("../models/member");
+const Transaction = require("../models/transaction");
+
+const normalizeLookupKey = (value) => String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
+
+const normalizeTransactionStatus = (rawStatus) => {
+  const value = String(rawStatus || "").trim().toLowerCase();
+  if (value === "paid") return "Paid";
+  if (value === "waived") return "Waived";
+  return "Unpaid";
+};
+
+const formatSanctionTotal = (amount) => `₱${Number(amount || 0).toLocaleString("en-PH")}`;
 
 const normalizeOrganization = (member) => {
   const candidate =
@@ -39,7 +51,29 @@ const normalizeOrganization = (member) => {
 
 const getMembers = async (req, res) => {
   try {
-    const members = await Member.find().sort({ lastSyncedAt: -1, createdAt: -1 });
+    const [members, transactions] = await Promise.all([
+      Member.find().sort({ lastSyncedAt: -1, createdAt: -1 }),
+      Transaction.find().select("memberId memberName amount status").lean(),
+    ]);
+
+    const sanctionTotals = transactions.reduce((totals, transaction) => {
+      const amount = Number(transaction.amount || 0);
+      const status = normalizeTransactionStatus(transaction.status);
+
+      if (!Number.isFinite(amount) || amount === 0 || status !== "Unpaid") {
+        return totals;
+      }
+
+      const keys = [transaction.memberId, transaction.memberName]
+        .map(normalizeLookupKey)
+        .filter(Boolean);
+
+      keys.forEach((key) => {
+        totals.set(key, (totals.get(key) || 0) + amount);
+      });
+
+      return totals;
+    }, new Map());
 
     // Normalize fields — records seeded directly into MongoDB may not have
     // gone through the Mongoose pre-save hook, so fullName/year/memberId
@@ -90,6 +124,17 @@ const getMembers = async (req, res) => {
       if (!obj.membershipStatus && obj.status) {
         obj.membershipStatus = obj.status;
       }
+
+      const sanctionKeyCandidates = [obj.memberId, obj.fullName, obj.memberName]
+        .map(normalizeLookupKey)
+        .filter(Boolean);
+      const sanctionTotal = sanctionKeyCandidates.reduce((total, key) => {
+        if (total > 0) return total;
+        return sanctionTotals.get(key) || 0;
+      }, 0);
+
+      obj.sanctionTotal = sanctionTotal;
+      obj.sanctions = formatSanctionTotal(sanctionTotal);
 
       return obj;
     });
