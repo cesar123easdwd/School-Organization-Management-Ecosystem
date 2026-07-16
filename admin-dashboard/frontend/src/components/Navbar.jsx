@@ -46,14 +46,6 @@ const Navbar = () => {
     return () => { active = false; clearInterval(interval); };
   }, []);
 
-  const now     = new Date();
-  const dateStr = now.toLocaleDateString("en-PH", {
-    weekday: "long",
-    year:    "numeric",
-    month:   "long",
-    day:     "numeric",
-  });
-
   // Derive initials from real user
   const initials = user?.name
     ? user.name.split(" ").slice(0, 2).map((n) => n[0].toUpperCase()).join("")
@@ -64,50 +56,31 @@ const Navbar = () => {
       {/* Left: Page title */}
       <div className="navbar-left">
         <h2 className="navbar-title">{meta.title}</h2>
-        <span className="navbar-subtitle">{dateStr}</span>
+        <span className="navbar-subtitle">{meta.subtitle}</span>
       </div>
 
       {/* Right: Actions */}
       <div className="navbar-right">
         {/* Live indicator */}
-        <div className={`live-indicator ${statusLabel}`} aria-label={`System status: ${statusLabel === 'online' ? 'Online' : statusLabel === 'offline' ? 'Offline' : 'Checking'}`}>
+        <div
+          className={`live-indicator ${statusLabel}`}
+          aria-label={`System status: ${statusLabel === 'online' ? 'Online' : statusLabel === 'offline' ? 'Offline' : 'Checking'}`}
+        >
           <span className="live-dot" />
           {statusLabel === 'loading'
-            ? 'Checking...'
+            ? 'Checking…'
             : statusLabel === 'online'
-              ? `${onlineCount} systems online`
-              : 'System offline'}
+              ? `${onlineCount} system${onlineCount !== 1 ? 's' : ''} online`
+              : 'All systems offline'}
         </div>
 
-        {/* Notifications */}
-        <button
-          className="navbar-btn"
-          id="navbar-notifications-btn"
-          aria-label="Notifications"
-          title="Notifications"
-        >
-          🔔
-          <span className="notif-dot" aria-hidden="true" />
-        </button>
-
-        {/* Search */}
-        <button
-          className="navbar-btn"
-          id="navbar-search-btn"
-          aria-label="Search"
-          title="Search"
-        >
-          🔍
-        </button>
-
-        {/* Admin Avatar — shows real initials */}
+        {/* Admin Avatar */}
         <div
           className="navbar-avatar"
           id="navbar-admin-avatar"
-          role="button"
-          tabIndex={0}
-          aria-label={`Admin profile: ${user?.name || "Admin"}`}
-          title={user?.name || "Admin"}
+          role="img"
+          aria-label={`Logged in as ${user?.name || 'Admin'}`}
+          title={user?.name || 'Admin'}
         >
           {initials}
         </div>

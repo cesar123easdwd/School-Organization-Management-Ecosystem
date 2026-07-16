@@ -58,7 +58,7 @@ body {
 /* ─── Scrollbar ──────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg-primary); }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+::-webkit-scrollbar-thumb { background: rgba(15,23,42,0.15); border-radius: 99px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
 /* ─── App Shell ──────────────────────────────────────────────────── */
@@ -320,6 +320,19 @@ body {
   font-size: 12px;
   font-weight: 500;
   color: var(--green);
+  transition: var(--transition);
+}
+
+.live-indicator.offline {
+  background: rgba(239,68,68,0.08);
+  border-color: rgba(239,68,68,0.25);
+  color: var(--red);
+}
+
+.live-indicator.loading {
+  background: rgba(15,23,42,0.06);
+  border-color: rgba(15,23,42,0.12);
+  color: var(--text-muted);
 }
 
 .live-dot {
@@ -463,6 +476,31 @@ body {
   line-height: 1;
   margin-bottom: 6px;
   letter-spacing: -1px;
+}
+
+/* stat-card value/label (used in Dashboard.jsx) */
+.stat-card-value {
+  font-size: 30px;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -1px;
+  line-height: 1.1;
+  margin-bottom: 4px;
+}
+
+.stat-card-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+}
+
+.stat-card-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
 }
 
 /* ─── Chart Cards ───────────────────────────────────────────────── */
@@ -1009,6 +1047,13 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 7px 12px;
+  transition: var(--transition);
+}
+
+.search-box:focus-within {
+  border-color: var(--border-active);
+  box-shadow: 0 0 0 3px rgba(127,20,22,0.08);
+  background: #fff;
 }
 
 .search-icon { font-size: 14px; color: var(--text-muted); }
@@ -1055,12 +1100,12 @@ body {
 }
 
 .table-row {
-  border-bottom: 1px solid rgba(255,255,255,0.04);
+  border-bottom: 1px solid rgba(15,23,42,0.06);
   transition: var(--transition);
 }
 
 .table-row:hover {
-  background: rgba(255,255,255,0.03);
+  background: rgba(127,20,22,0.03);
 }
 
 .table-row:last-child { border-bottom: none; }
@@ -1108,8 +1153,28 @@ body {
 }
 
 .action-btn:hover {
-  background: rgba(255,255,255,0.06);
-  border-color: rgba(255,255,255,0.15);
+  background: rgba(15,23,42,0.05);
+  border-color: rgba(15,23,42,0.15);
+}
+
+/* Deactivate button — used in Users page */
+.btn-deactivate {
+  background: rgba(239,68,68,0.08);
+  color: #ef4444;
+  border: 1px solid rgba(239,68,68,0.25);
+  border-radius: var(--radius-sm);
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.btn-deactivate:hover {
+  background: rgba(239,68,68,0.15);
+  border-color: rgba(239,68,68,0.4);
 }
 
 .table-footer {
@@ -1370,7 +1435,7 @@ body {
   width: 100%;
   display: flex;
   align-items: flex-end;
-  background: rgba(255,255,255,0.04);
+  background: rgba(15,23,42,0.07);
   border-radius: 4px 4px 0 0;
   overflow: hidden;
 }
@@ -1390,7 +1455,7 @@ body {
 .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 .legend-info { flex: 1; }
 .legend-label { font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; }
-.legend-bar-track { background: rgba(255,255,255,0.05); height: 6px; border-radius: 99px; overflow: hidden; }
+.legend-bar-track { background: rgba(15,23,42,0.08); height: 6px; border-radius: 99px; overflow: hidden; }
 .legend-bar-fill { height: 100%; border-radius: 99px; transition: width 1s ease; }
 .legend-pct { font-size: 12px; font-weight: 700; color: var(--text-secondary); min-width: 32px; text-align: right; }
 
@@ -1450,11 +1515,11 @@ body {
   align-items: flex-start;
   gap: 12px;
   padding: 14px 20px;
-  border-bottom: 1px solid rgba(255,255,255,0.04);
+  border-bottom: 1px solid rgba(15,23,42,0.06);
   transition: var(--transition);
 }
 
-.log-entry:hover { background: rgba(255,255,255,0.02); }
+.log-entry:hover { background: rgba(127,20,22,0.025); }
 .log-entry:last-child { border-bottom: none; }
 
 .log-type-badge {

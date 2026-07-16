@@ -5,14 +5,14 @@ import toast from 'react-hot-toast';
 
 const roleColor = {
   superadmin: { color: '#f59e0b', bg: 'rgba(245,158,11,0.12)', border: 'rgba(245,158,11,0.3)' },
-  admin:      { color: '#7f1416', bg: 'rgba(127,20,22,0.12)',  border: 'rgba(127,20,22,0.3)' },
-  viewer:     { color: '#6b7280', bg: 'rgba(15,23,42,0.12)', border: 'rgba(15,23,42,0.18)' },
+  admin:      { color: '#7f1416', bg: 'rgba(127,20,22,0.12)',  border: 'rgba(127,20,22,0.3)'  },
+  viewer:     { color: '#6b7280', bg: 'rgba(15,23,42,0.08)',   border: 'rgba(15,23,42,0.15)'  },
 };
 
 const initials = (name = '') =>
   name.split(' ').slice(0, 2).map(n => n[0]?.toUpperCase()).join('');
 
-/* ── Add User Modal ───────────────────────────────────────────── */
+/* ── Add User Modal ───────────────────────────────────────────────── */
 const AddUserModal = ({ onClose, onCreated }) => {
   const [form, setForm]     = useState({ name: '', email: '', password: '', role: 'admin' });
   const [saving, setSaving] = useState(false);
@@ -40,21 +40,29 @@ const AddUserModal = ({ onClose, onCreated }) => {
       <div className="modal" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <h3>Add Admin User</h3>
-          <button className="modal-close" onClick={onClose}>✕</button>
+          <button className="modal-close" onClick={onClose} aria-label="Close">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
         </div>
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
-            <div className="form-group"><label>Full Name *</label>
+            <div className="form-group">
+              <label>Full Name *</label>
               <input name="name" className="form-input" placeholder="Enter full name" value={form.name} onChange={handleChange} required />
             </div>
-            <div className="form-group"><label>Email Address *</label>
+            <div className="form-group">
+              <label>Email Address *</label>
               <input name="email" type="email" className="form-input" placeholder="Enter email address" value={form.email} onChange={handleChange} required />
             </div>
             <div className="form-row">
-              <div className="form-group"><label>Password *</label>
+              <div className="form-group">
+                <label>Password *</label>
                 <input name="password" type="password" className="form-input" placeholder="Create a secure password" value={form.password} onChange={handleChange} required />
               </div>
-              <div className="form-group"><label>Role</label>
+              <div className="form-group">
+                <label>Role</label>
                 <select name="role" className="form-input" value={form.role} onChange={handleChange}>
                   <option value="admin">Admin</option>
                   <option value="viewer">Viewer</option>
@@ -75,7 +83,7 @@ const AddUserModal = ({ onClose, onCreated }) => {
   );
 };
 
-/* ── Users Page ───────────────────────────────────────────────── */
+/* ── Users Page ───────────────────────────────────────────────────── */
 const Users = () => {
   const { user: currentUser } = useAuth();
   const [users,     setUsers]     = useState([]);
@@ -123,8 +131,16 @@ const Users = () => {
           <p className="page-desc">Manage administrator accounts and access roles</p>
         </div>
         {currentUser?.role === 'superadmin' && (
-          <button className="btn-primary" id="add-user-btn" onClick={() => setShowModal(true)}>
-            + Add Admin
+          <button
+            className="btn-primary"
+            id="add-user-btn"
+            onClick={() => setShowModal(true)}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Add Admin
           </button>
         )}
       </div>
@@ -153,7 +169,9 @@ const Users = () => {
           </span>
           <div style={{ display: 'flex', gap: '8px' }}>
             <div className="search-box">
-              <span className="search-icon">🔍</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="search-icon">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
               <input
                 id="users-search"
                 className="search-input"
@@ -162,8 +180,19 @@ const Users = () => {
                 onChange={e => setSearch(e.target.value)}
               />
             </div>
-            <button className="btn-ghost" onClick={fetchUsers} disabled={loading}>
-              {loading ? '⟳' : '↻'}
+            <button
+              className="btn-ghost"
+              onClick={fetchUsers}
+              disabled={loading}
+              aria-label="Refresh"
+              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }}>
+                <polyline points="23 4 23 10 17 10"/>
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+              </svg>
+              {loading ? 'Loading…' : 'Refresh'}
             </button>
           </div>
         </div>
@@ -183,11 +212,11 @@ const Users = () => {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '24px' }}>Loading…</td></tr>
+                <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '40px' }}>Loading…</td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '24px' }}>No users found.</td></tr>
+                <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '40px' }}>No users found.</td></tr>
               ) : filtered.map(u => {
-                const rc  = roleColor[u.role] || roleColor.viewer;
+                const rc    = roleColor[u.role] || roleColor.viewer;
                 const isSelf = u._id === currentUser?._id;
                 return (
                   <tr key={u._id} className="table-row" id={`user-row-${u._id}`}>
@@ -201,24 +230,26 @@ const Users = () => {
                         }}>
                           {initials(u.name)}
                         </div>
-                        <div>
-                          <div className="member-name" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            {u.name}
-                            {isSelf && <span style={{ fontSize: '10px', background: 'rgba(127,20,22,0.12)', color: '#5f1011', padding: '1px 6px', borderRadius: '99px' }}>You</span>}
-                          </div>
+                        <div className="member-name" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          {u.name}
+                          {isSelf && (
+                            <span style={{ fontSize: '10px', background: 'rgba(127,20,22,0.1)', color: '#7f1416', padding: '1px 6px', borderRadius: '99px', fontWeight: 600 }}>
+                              You
+                            </span>
+                          )}
                         </div>
                       </div>
                     </td>
                     <td style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>{u.email}</td>
                     <td>
                       <span className="status-pill" style={{ background: rc.bg, color: rc.color, border: `1px solid ${rc.border}` }}>
-                        {u.role}
+                        {u.role === 'superadmin' ? 'Super Admin' : u.role.charAt(0).toUpperCase() + u.role.slice(1)}
                       </span>
                     </td>
                     <td>
                       <span className="status-pill" style={u.isActive
                         ? { background: 'rgba(34,197,94,0.12)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.3)' }
-                        : { background: 'rgba(15,23,42,0.12)', color: '#6b7280', border: '1px solid rgba(15,23,42,0.18)' }}>
+                        : { background: 'rgba(15,23,42,0.06)', color: '#6b7280', border: '1px solid rgba(15,23,42,0.12)' }}>
                         {u.isActive ? 'Active' : 'Inactive'}
                       </span>
                     </td>
@@ -232,12 +263,12 @@ const Users = () => {
                       <td>
                         {!isSelf && u.isActive && (
                           <button
-                            className="action-btn delete"
-                            title="Deactivate"
+                            className="btn-deactivate"
                             id={`deactivate-user-${u._id}-btn`}
                             onClick={() => handleDeactivate(u)}
+                            title="Deactivate this admin"
                           >
-                            🚫
+                            Deactivate
                           </button>
                         )}
                       </td>
@@ -248,7 +279,7 @@ const Users = () => {
             </tbody>
           </table>
         </div>
-        <div className="table-footer"><span>{filtered.length} records</span></div>
+        <div className="table-footer"><span>{filtered.length} of {users.length} records</span></div>
       </div>
 
       {showModal && (
@@ -257,6 +288,8 @@ const Users = () => {
           onCreated={fetchUsers}
         />
       )}
+
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </main>
   );
 };

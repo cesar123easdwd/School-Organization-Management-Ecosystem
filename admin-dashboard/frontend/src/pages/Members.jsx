@@ -76,7 +76,9 @@ const Members = () => {
       <div className="table-card">
         <div className="table-toolbar">
           <div className="search-box">
-            <span className="search-icon">🔍</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="search-icon">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
             <input
               id="members-search"
               className="search-input"
@@ -140,7 +142,7 @@ const Members = () => {
         </div>
 
         <div className="table-footer">
-          <span>{filtered.length} of {members.length} members</span>
+          <span>{filtered.length} of {members.length} member{members.length !== 1 ? 's' : ''}</span>
         </div>
       </div>
 
