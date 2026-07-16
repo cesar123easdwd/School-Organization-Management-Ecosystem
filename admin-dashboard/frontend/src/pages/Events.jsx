@@ -38,7 +38,8 @@ const Events = () => {
   }, []);
 
   const filtered = events.filter((e) => {
-    const matchSearch = (e.title || '').toLowerCase().includes(search.toLowerCase()) || (e.location || '').toLowerCase().includes(search.toLowerCase());
+    const venue = e.location || e.venue || '';
+    const matchSearch = (e.title || '').toLowerCase().includes(search.toLowerCase()) || venue.toLowerCase().includes(search.toLowerCase());
     const status = e.status || 'Upcoming';
     const matchFilter = filter === 'All' || status === filter;
     return matchSearch && matchFilter;
@@ -144,12 +145,13 @@ const Events = () => {
                 ) : filtered.map(ev => {
                   const status = ev.status || 'Upcoming';
                   const s = STATUS_COLORS[status] || STATUS_COLORS.Upcoming;
+                  const venue = ev.location || ev.venue || '—';
                   return (
                     <tr key={ev.eventId || ev._id} className="table-row">
                       <td><code className="id-badge">{ev.eventId || ev._id || '—'}</code></td>
                       <td><span className="member-name">{ev.title || 'Untitled event'}</span></td>
                       <td><span style={{ color: 'var(--text-secondary)' }}>{ev.date ? new Date(ev.date).toLocaleDateString('en-PH') : '—'}{ev.time ? ` · ${ev.time}` : ''}</span></td>
-                      <td>{ev.location || '—'}</td>
+                      <td>{venue}</td>
                       <td><span style={{ color: 'var(--text-secondary)' }}>{TYPE_LABELS[ev.type] || ev.type || 'General'}</span></td>
                       <td><span className="status-pill" style={{ background: s.bg, color: s.color, border: `1px solid ${s.border}` }}>{status}</span></td>
                     </tr>
@@ -163,6 +165,7 @@ const Events = () => {
             {filtered.map(ev => {
               const status = ev.status || 'Upcoming';
               const s = STATUS_COLORS[status] || STATUS_COLORS.Upcoming;
+              const venue = ev.location || ev.venue || 'No venue specified';
               return (
                 <div key={ev.eventId || ev._id || ev.id} className="event-card">
                   <div className="event-card-icon">
@@ -175,7 +178,7 @@ const Events = () => {
                   <div className="event-card-content">
                     <div className="event-card-title">{ev.title || 'Untitled event'}</div>
                     <div className="event-card-meta">{ev.date ? new Date(ev.date).toLocaleDateString('en-PH') : '—'}{ev.time ? ` · ${ev.time}` : ''}</div>
-                    <div className="event-card-meta">{ev.location || 'No venue specified'}</div>
+                    <div className="event-card-meta">{venue}</div>
                   </div>
                   <span className="status-pill" style={{ background: s.bg, color: s.color, border: `1px solid ${s.border}`, alignSelf: 'flex-start', marginTop: '2px' }}>{status}</span>
                 </div>
