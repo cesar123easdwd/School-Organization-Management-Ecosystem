@@ -333,6 +333,8 @@ const pushAttendance = async (req, res) => {
       memberId,
       memberName,
       status,
+      date: new Date(),
+      timeIn: new Date(),
       remarks,
       sourceSystem: system._id,
       lastSyncedAt: new Date(),

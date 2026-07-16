@@ -13,6 +13,16 @@ const Attendance = () => {
   const [search, setSearch]   = useState('');
   const [filter, setFilter]   = useState('All');
 
+  const formatAttendanceDate = (record) => {
+    const value = record?.date || record?.createdAt || record?.lastSyncedAt;
+    return value ? new Date(value).toLocaleDateString('en-PH') : '—';
+  };
+
+  const formatAttendanceTime = (record) => {
+    const value = record?.timeIn || record?.time || record?.createdAt || record?.lastSyncedAt;
+    return value ? new Date(value).toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' }) : '—';
+  };
+
   useEffect(() => {
     const fetchAttendance = async () => {
       setLoading(true);
@@ -138,13 +148,14 @@ const Attendance = () => {
               ) : filtered.map(r => {
                 const status = r.status || 'Absent';
                 const s = ATT_STYLE[status] || ATT_STYLE.Absent;
+                const eventLabel = r.eventTitle || r.event || '—';
                 return (
                   <tr key={r._id || r.id} className="table-row">
                     <td><code className="id-badge">{r._id || r.id || '—'}</code></td>
                     <td><span className="member-name">{r.memberName || r.member || 'Unknown'}</span></td>
-                    <td>{r.eventTitle || r.event || '—'}</td>
-                    <td style={{ color: 'var(--text-secondary)' }}>{r.date ? new Date(r.date).toLocaleDateString('en-PH') : '—'}</td>
-                    <td style={{ color: 'var(--text-secondary)' }}>{r.timeIn || r.time || '—'}</td>
+                    <td>{eventLabel}</td>
+                    <td style={{ color: 'var(--text-secondary)' }}>{formatAttendanceDate(r)}</td>
+                    <td style={{ color: 'var(--text-secondary)' }}>{formatAttendanceTime(r)}</td>
                     <td><span className="status-pill" style={{ background: s.bg, color: s.color, border: `1px solid ${s.border}` }}>{status}</span></td>
                   </tr>
                 );
