@@ -40,6 +40,7 @@ const Members = () => {
   const resolveOrganization = (m) => {
     const candidate =
       m.organization ||
+      m.organizationId ||
       m.organizationJoined ||
       m.organizationName ||
       m.orgName ||

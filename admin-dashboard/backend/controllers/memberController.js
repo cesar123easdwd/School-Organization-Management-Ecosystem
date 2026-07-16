@@ -3,6 +3,7 @@ const Member = require("../models/member");
 const normalizeOrganization = (member) => {
   const candidate =
     member.organization ||
+    member.organizationId ||
     member.organizationJoined ||
     member.organizationName ||
     member.orgName ||
@@ -67,6 +68,10 @@ const getMembers = async (req, res) => {
       // Normalize organization-related fields from older database records
       if (!obj.organization) {
         obj.organization = normalizeOrganization(obj);
+      }
+
+      if (!obj.organization && obj.organizationId) {
+        obj.organization = String(obj.organizationId).trim();
       }
 
       if (obj.organization && typeof obj.organization !== "string") {
