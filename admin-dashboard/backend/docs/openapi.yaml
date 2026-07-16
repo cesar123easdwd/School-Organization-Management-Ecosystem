@@ -74,26 +74,28 @@ paths:
   /integration/ping:
     post:
       summary: Announce subsystem online
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [apiKey]
-              properties:
-                apiKey:
-                  type: string
+      security:
+        - integrationApiKey: []
+        - integrationBearer: []
+      parameters:
+        - in: header
+          name: x-api-key
+          required: false
+          schema:
+            type: string
       responses:
         '200':
           description: Ping received
   /integration/push-member:
     post:
       summary: Push a member record from a subsystem
+      security:
+        - integrationApiKey: []
+        - integrationBearer: []
       parameters:
         - in: header
           name: x-api-key
-          required: true
+          required: false
           schema:
             type: string
       requestBody:
@@ -126,10 +128,13 @@ paths:
   /integration/push-event:
     post:
       summary: Push an event record from a subsystem
+      security:
+        - integrationApiKey: []
+        - integrationBearer: []
       parameters:
         - in: header
           name: x-api-key
-          required: true
+          required: false
           schema:
             type: string
       requestBody:
@@ -160,10 +165,13 @@ paths:
   /integration/push-attendance:
     post:
       summary: Push attendance and optionally create a sanction
+      security:
+        - integrationApiKey: []
+        - integrationBearer: []
       parameters:
         - in: header
           name: x-api-key
-          required: true
+          required: false
           schema:
             type: string
       requestBody:
@@ -192,10 +200,13 @@ paths:
   /integration/push-transaction:
     post:
       summary: Push a sanction transaction
+      security:
+        - integrationApiKey: []
+        - integrationBearer: []
       parameters:
         - in: header
           name: x-api-key
-          required: true
+          required: false
           schema:
             type: string
       requestBody:
@@ -235,3 +246,11 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
+    integrationApiKey:
+      type: apiKey
+      in: header
+      name: x-api-key
+    integrationBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: API-Key

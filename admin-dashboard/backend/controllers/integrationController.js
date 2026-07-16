@@ -1,16 +1,8 @@
-const System         = require("../models/system");
 const IntegrationLog = require("../models/integrationLog");
 const Transaction    = require("../models/transaction");
 const Member         = require("../models/member");
 const Event          = require("../models/event");
 const Attendance     = require("../models/attendance");
-
-/* ─── Helper: authenticate the incoming system via API key ─────── */
-const authenticateSystem = async (apiKey) => {
-  if (!apiKey) return null;
-  // We use .select("+apiKey") because apiKey is hidden by default
-  return System.findOne({ apiKey, isActive: true }).select("+apiKey");
-};
 
 /* ─── Helper: write an integration log entry ───────────────────── */
 const writeLog = async ({ system, method, endpoint, action, message, level, statusCode, meta, ip }) => {
@@ -41,11 +33,11 @@ const writeLog = async ({ system, method, endpoint, action, message, level, stat
 /* ══════════════════════════════════════════════════════════════════
    POST /api/integration/ping
    Sub-systems call this to announce they are online.
-   Body: { apiKey }
+   Auth: x-api-key or Authorization: Bearer <system api key>
    ══════════════════════════════════════════════════════════════════ */
 const ping = async (req, res) => {
   try {
-    const system = await authenticateSystem(req.body.apiKey || req.headers["x-api-key"]);
+    const system = req.system;
     if (!system) {
       return res.status(401).json({ success: false, message: "Invalid or inactive API key." });
     }
@@ -84,7 +76,7 @@ const ping = async (req, res) => {
    ══════════════════════════════════════════════════════════════════ */
 const pushTransaction = async (req, res) => {
   try {
-    const system = await authenticateSystem(req.headers["x-api-key"]);
+    const system = req.system;
     if (!system) {
       return res.status(401).json({ success: false, message: "Invalid or inactive API key." });
     }
@@ -177,7 +169,7 @@ const getLogs = async (req, res) => {
    ══════════════════════════════════════════════════════════════════ */
 const pushMember = async (req, res) => {
   try {
-    const system = await authenticateSystem(req.headers["x-api-key"]);
+    const system = req.system;
     if (!system) {
       return res.status(401).json({ success: false, message: "Invalid or inactive API key." });
     }
@@ -245,7 +237,7 @@ const pushMember = async (req, res) => {
    ══════════════════════════════════════════════════════════════════ */
 const pushEvent = async (req, res) => {
   try {
-    const system = await authenticateSystem(req.headers["x-api-key"]);
+    const system = req.system;
     if (!system) {
       return res.status(401).json({ success: false, message: "Invalid or inactive API key." });
     }
@@ -306,7 +298,7 @@ const pushEvent = async (req, res) => {
    ══════════════════════════════════════════════════════════════════ */
 const pushAttendance = async (req, res) => {
   try {
-    const system = await authenticateSystem(req.headers["x-api-key"]);
+    const system = req.system;
     if (!system) {
       return res.status(401).json({ success: false, message: "Invalid or inactive API key." });
     }

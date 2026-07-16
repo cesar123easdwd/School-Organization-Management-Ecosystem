@@ -15,6 +15,8 @@ The Admin Dashboard acts as the **central hub** of the system. Your sub-system m
 
 You do **not** need to build your own authentication. The Admin API authenticates your system via an **API key** in the request header.
 
+Do not send browser login credentials (email/password, cookies, or frontend JWT storage) from your UI to call integration routes. Integration calls must come from your backend service.
+
 ## Current Status
 
 - The **Systems** page shows a subsystem as online only after it sends `POST /api/integration/ping`.
@@ -44,6 +46,11 @@ Every request must include your API key as a **header**:
 x-api-key: sk_YOUR_KEY_HERE
 ```
 
+Alternative server-to-server method:
+```http
+Authorization: Bearer sk_YOUR_KEY_HERE
+```
+
 If the key is wrong or missing, you'll get:
 ```json
 { "success": false, "message": "Invalid or inactive API key." }
@@ -61,10 +68,7 @@ Call this **once when your backend server starts** so the dashboard shows you as
 ```http
 POST http://localhost:5000/api/integration/ping
 Content-Type: application/json
-
-{
-  "apiKey": "sk_YOUR_KEY_HERE"
-}
+x-api-key: sk_YOUR_KEY_HERE
 ```
 
 **Success Response:**
@@ -82,8 +86,8 @@ const axios = require('axios');
 
 async function pingAdminDashboard() {
   try {
-    await axios.post('http://localhost:5000/api/integration/ping', {
-      apiKey: process.env.ADMIN_API_KEY,
+    await axios.post('http://localhost:5000/api/integration/ping', {}, {
+      headers: { 'x-api-key': process.env.ADMIN_API_KEY },
     });
     console.log('✅ Admin Dashboard notified — system is online.');
   } catch (err) {
@@ -468,10 +472,7 @@ Test that your key works by calling ping:
 ```http
 POST http://localhost:5000/api/integration/ping
 Content-Type: application/json
-
-{
-  "apiKey": "sk_YOUR_KEY_HERE"
-}
+x-api-key: sk_YOUR_KEY_HERE
 ```
 
 Expected:
