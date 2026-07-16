@@ -47,7 +47,17 @@ const memberSchema = new mongoose.Schema(
       trim: true,
       default: "",
     },
+    organizationId: {
+      type: String,
+      trim: true,
+      default: "",
+    },
     status: {
+      type: String,
+      trim: true,
+      default: "Active",
+    },
+    membershipStatus: {
       type: String,
       trim: true,
       default: "Active",

@@ -74,6 +74,10 @@ const getMembers = async (req, res) => {
         obj.organization = String(obj.organizationId).trim();
       }
 
+      if (!obj.organizationId && obj.organization) {
+        obj.organizationId = String(obj.organization).trim();
+      }
+
       if (obj.organization && typeof obj.organization !== "string") {
         obj.organization = normalizeOrganization(obj);
       }
@@ -81,6 +85,10 @@ const getMembers = async (req, res) => {
       // Normalize status — prefer membershipStatus if status is missing
       if (!obj.status && obj.membershipStatus) {
         obj.status = obj.membershipStatus;
+      }
+
+      if (!obj.membershipStatus && obj.status) {
+        obj.membershipStatus = obj.status;
       }
 
       return obj;

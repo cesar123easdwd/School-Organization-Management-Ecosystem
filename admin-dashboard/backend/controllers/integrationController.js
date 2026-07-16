@@ -182,7 +182,7 @@ const pushMember = async (req, res) => {
       return res.status(401).json({ success: false, message: "Invalid or inactive API key." });
     }
 
-    const { memberId, firstName, lastName, email, course, year, organization, organizationId, status } = req.body;
+    const { memberId, firstName, lastName, email, course, year, organization, organizationId, status, membershipStatus } = req.body;
     if (!firstName || !lastName) {
       return res.status(400).json({ success: false, message: "firstName and lastName are required." });
     }
@@ -200,7 +200,9 @@ const pushMember = async (req, res) => {
         course,
         year,
         organization: organization || organizationId || "",
-        status,
+        organizationId: organizationId || organization || "",
+        status: status || membershipStatus || "Active",
+        membershipStatus: membershipStatus || status || "Active",
         sourceSystem: system._id,
         systemName: system.name,
         lastSyncedAt: new Date(),
@@ -215,7 +217,7 @@ const pushMember = async (req, res) => {
       action:     `Member synced: ${fullName}${course ? ` – ${course}` : ""}${year ? ` Year ${year}` : ""}`,
       level:      "info",
       statusCode: 201,
-      meta:       { memberId, firstName, lastName, email, course, year, organization: organization || organizationId, status },
+      meta:       { memberId, firstName, lastName, email, course, year, organization: organization || organizationId, status: status || membershipStatus },
       ip:         req.ip,
     });
 
@@ -226,7 +228,7 @@ const pushMember = async (req, res) => {
     res.status(201).json({
       success: true,
       message: `Member "${fullName}" received and logged.`,
-      received: { memberId, firstName, lastName, email, course, year, organization: organization || organizationId, status },
+      received: { memberId, firstName, lastName, email, course, year, organization: organization || organizationId, status: status || membershipStatus },
     });
 
   } catch (error) {
