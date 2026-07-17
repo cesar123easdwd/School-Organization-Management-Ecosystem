@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import attendanceService from '../services/attendanceService';
+import memberService from '../services/memberService';
 
 const ATT_STYLE = {
   Present: { bg: 'rgba(34,197,94,0.12)',  color: '#22c55e', border: 'rgba(34,197,94,0.3)'  },
@@ -7,11 +8,49 @@ const ATT_STYLE = {
   Absent:  { bg: 'rgba(239,68,68,0.12)',  color: '#ef4444', border: 'rgba(239,68,68,0.3)'  },
 };
 
+const ORGANIZATIONS = ['All', 'ICPEP', 'JPICE', 'MICRO-JPCS', 'UAPSA'];
+
+const normalizeLookupKey = (value) => String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
+
+const resolveOrganization = (member) => {
+  const candidate =
+    member.organization ||
+    member.organizationId ||
+    member.organizationJoined ||
+    member.organizationName ||
+    member.orgName ||
+    member.organizationInvolved ||
+    member.involvedOrganization ||
+    member.organizationLabel ||
+    member.systemName;
+
+  if (typeof candidate === 'string') {
+    return candidate.trim() || '—';
+  }
+
+  if (candidate && typeof candidate === 'object') {
+    return candidate.name || candidate.label || candidate.title || candidate.value || '—';
+  }
+
+  if (Array.isArray(candidate)) {
+    const value = candidate
+      .map((item) => (typeof item === 'string' ? item : item?.name || item?.label || item?.title || item?.value || ''))
+      .filter(Boolean)
+      .join(', ')
+      .trim();
+
+    return value || '—';
+  }
+
+  return '—';
+};
+
 const Attendance = () => {
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch]   = useState('');
   const [filter, setFilter]   = useState('All');
+  const [organization, setOrganization] = useState('All');
 
   const formatAttendanceDate = (record) => {
     const value = record?.date || record?.createdAt || record?.lastSyncedAt;
@@ -27,8 +66,36 @@ const Attendance = () => {
     const fetchAttendance = async () => {
       setLoading(true);
       try {
-        const result = await attendanceService.getAttendance();
-        setRecords(result.attendance || []);
+        const [attendanceResult, membersResult] = await Promise.all([
+          attendanceService.getAttendance(),
+          memberService.getMembers(),
+        ]);
+
+        const organizationMap = new Map();
+        (membersResult.members || []).forEach((member) => {
+          const memberOrganization = resolveOrganization(member);
+          [member.memberId, member.studentId, member.fullName, member.memberName]
+            .map(normalizeLookupKey)
+            .filter(Boolean)
+            .forEach((key) => {
+              organizationMap.set(key, memberOrganization);
+            });
+        });
+
+        const normalizedAttendance = (attendanceResult.attendance || []).map((record) => {
+          const mappedOrganization =
+            record.organization ||
+            organizationMap.get(normalizeLookupKey(record.memberId)) ||
+            organizationMap.get(normalizeLookupKey(record.memberName)) ||
+            '—';
+
+          return {
+            ...record,
+            organization: mappedOrganization,
+          };
+        });
+
+        setRecords(normalizedAttendance);
       } catch (error) {
         console.error('[Attendance] failed to load records', error);
       } finally {
@@ -38,20 +105,21 @@ const Attendance = () => {
     fetchAttendance();
   }, []);
 
-  const total   = records.length;
-  const present = records.filter(r => r.status === 'Present').length;
-  const late    = records.filter(r => r.status === 'Late').length;
-  const absent  = records.filter(r => r.status === 'Absent').length;
-  const rate    = total > 0 ? Math.round(((present + late) / total) * 100) : 0;
-
-  const filtered = records.filter(r => {
+  const visibleRecords = records.filter(r => {
     const member = (r.memberName || r.member || '').toString().toLowerCase();
     const event  = (r.eventTitle || r.event || '').toString().toLowerCase();
     const matchSearch = member.includes(search.toLowerCase()) || event.includes(search.toLowerCase());
     const status = r.status || 'Absent';
     const matchFilter = filter === 'All' || status === filter;
-    return matchSearch && matchFilter;
+    const matchOrganization = organization === 'All' || normalizeLookupKey(r.organization) === normalizeLookupKey(organization);
+    return matchSearch && matchFilter && matchOrganization;
   });
+
+  const total   = visibleRecords.length;
+  const present = visibleRecords.filter(r => r.status === 'Present').length;
+  const late    = visibleRecords.filter(r => r.status === 'Late').length;
+  const absent  = visibleRecords.filter(r => r.status === 'Absent').length;
+  const rate    = total > 0 ? Math.round(((present + late) / total) * 100) : 0;
 
   return (
     <main className="page-body fade-in" id="attendance-page">
@@ -113,39 +181,54 @@ const Attendance = () => {
               <button key={s} className={`chip${filter === s ? ' chip-active' : ''}`} onClick={() => setFilter(s)}>{s}</button>
             ))}
           </div>
-          <div className="search-box">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="search-icon">
-              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-            </svg>
-            <input
-              id="attendance-search"
-              className="search-input"
-              placeholder="Search member or event…"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-            />
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+            <label className="search-box" style={{ minWidth: '220px' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="search-icon">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              <input
+                id="attendance-search"
+                className="search-input"
+                placeholder="Search member or event…"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+              />
+            </label>
+            <label className="search-box" style={{ minWidth: '200px' }}>
+              <select
+                id="attendance-organization"
+                className="search-input"
+                value={organization}
+                onChange={(e) => setOrganization(e.target.value)}
+                aria-label="Filter attendance by organization"
+              >
+                {ORGANIZATIONS.map((org) => (
+                  <option key={org} value={org}>{org}</option>
+                ))}
+              </select>
+            </label>
           </div>
         </div>
 
         <div className="table-wrap">
           <table className="data-table">
             <thead>
-              <tr><th>Record ID</th><th>Member</th><th>Event</th><th>Date</th><th>Time In</th><th>Status</th></tr>
+              <tr><th>Record ID</th><th>Member</th><th>Event</th><th>Date</th><th>Time In</th><th>Organization</th><th>Status</th></tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
                     Loading attendance…
                   </td>
                 </tr>
-              ) : filtered.length === 0 ? (
+              ) : visibleRecords.length === 0 ? (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
                     No attendance records found
                   </td>
                 </tr>
-              ) : filtered.map(r => {
+              ) : visibleRecords.map(r => {
                 const status = r.status || 'Absent';
                 const s = ATT_STYLE[status] || ATT_STYLE.Absent;
                 const eventLabel = r.eventTitle || r.event || '—';
@@ -156,6 +239,7 @@ const Attendance = () => {
                     <td>{eventLabel}</td>
                     <td style={{ color: 'var(--text-secondary)' }}>{formatAttendanceDate(r)}</td>
                     <td style={{ color: 'var(--text-secondary)' }}>{formatAttendanceTime(r)}</td>
+                    <td style={{ color: 'var(--text-secondary)' }}>{r.organization || '—'}</td>
                     <td><span className="status-pill" style={{ background: s.bg, color: s.color, border: `1px solid ${s.border}` }}>{status}</span></td>
                   </tr>
                 );
@@ -163,7 +247,7 @@ const Attendance = () => {
             </tbody>
           </table>
         </div>
-        <div className="table-footer"><span>{filtered.length} of {records.length} records</span></div>
+        <div className="table-footer"><span>{visibleRecords.length} of {records.length} records</span></div>
       </div>
     </main>
   );
