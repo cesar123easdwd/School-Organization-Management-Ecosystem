@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 /**
  * Attendance Model
  * Stores attendance records created by the Attendance Management integration.
+ * Valid statuses: Present | Absent  (Late has been removed from the system)
  */
 const attendanceSchema = new mongoose.Schema(
   {
@@ -26,9 +27,15 @@ const attendanceSchema = new mongoose.Schema(
       required: [true, "Member name is required"],
       trim: true,
     },
+    // Organization is resolved at push time by looking up the member record
+    organization: {
+      type: String,
+      trim: true,
+      default: "",
+    },
     status: {
       type: String,
-      enum: ["Present", "Late", "Absent"],
+      enum: ["Present", "Absent"],
       default: "Present",
     },
     date: {

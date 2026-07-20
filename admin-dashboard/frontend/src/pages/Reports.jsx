@@ -63,7 +63,7 @@ const Reports = () => {
   const collectionRate  = totalIssued > 0 ? Math.round((totalCollected / totalIssued) * 100) : 0;
 
   const attendanceCount   = attendance.length;
-  const attendancePresent = attendance.filter(r => ['Present', 'Late'].includes(r.status)).length;
+  const attendancePresent = attendance.filter(r => r.status === 'Present').length;
   const avgAttendance     = attendanceCount > 0 ? Math.round((attendancePresent / attendanceCount) * 100) : 0;
 
   const membersByCourse = Object.entries(
@@ -97,7 +97,7 @@ const Reports = () => {
       const date = new Date(record.date || record.createdAt || record.eventDate || null);
       return date.getFullYear() === year && date.getMonth() + 1 === month;
     });
-    const present = monthRecords.filter(r => ['Present', 'Late'].includes(r.status)).length;
+    const present = monthRecords.filter(r => r.status === 'Present').length;
     const total = monthRecords.length;
     return {
       label,

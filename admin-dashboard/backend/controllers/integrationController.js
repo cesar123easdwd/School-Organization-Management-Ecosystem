@@ -322,6 +322,28 @@ const pushEvent = async (req, res) => {
    Headers: x-api-key: <Attendance Management API key>
    Body: { eventId, eventTitle, memberId, memberName, status, remarks }
    ══════════════════════════════════════════════════════════════════ */
+
+/* Helper: normalize org from a member document */
+const _resolveMemberOrg = (m) => {
+  if (!m) return "";
+  const candidate =
+    m.organization || m.organizationId || m.organizationJoined ||
+    m.organizationName || m.orgName || m.organizationInvolved ||
+    m.involvedOrganization || m.organizationLabel || m.systemName;
+  if (typeof candidate === "string") return candidate.trim();
+  if (candidate && typeof candidate === "object") {
+    return (candidate.name || candidate.label || candidate.title || candidate.value || "").toString().trim();
+  }
+  return "";
+};
+
+/* Helper: normalize attendance status to Present | Absent only */
+const _normalizeAttStatus = (raw) => {
+  if (!raw) return "Absent";
+  const s = String(raw).trim().toLowerCase();
+  return s === "present" ? "Present" : "Absent";
+};
+
 const pushAttendance = async (req, res) => {
   try {
     const system = req.system;
@@ -334,9 +356,24 @@ const pushAttendance = async (req, res) => {
       return res.status(400).json({ success: false, message: "memberName and eventTitle are required." });
     }
 
+    // Normalize status — Late is not part of this system
+    const normalizedStatus = _normalizeAttStatus(status);
+
+    // Look up the member so we can persist their organization on the record
+    const normKey = (v) => String(v || "").trim().toLowerCase().replace(/\s+/g, " ");
+    const memberDoc = await Member.findOne({
+      $or: [
+        ...(memberId   ? [{ memberId }]                          : []),
+        ...(memberId   ? [{ studentId: memberId }]               : []),
+        { fullName: new RegExp(`^${memberName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i") },
+      ],
+    }).lean();
+
+    const organization = _resolveMemberOrg(memberDoc) || "";
+
     // If absent — automatically create an unpaid sanction transaction
     let autoSanction = null;
-    if (status === "Absent" || status === "absent") {
+    if (normalizedStatus === "Absent") {
       autoSanction = await Transaction.create({
         memberName,
         memberId:     memberId || "",
@@ -349,30 +386,31 @@ const pushAttendance = async (req, res) => {
     }
 
     await Attendance.create({
-      eventId: eventId || eventTitle,
+      eventId:      eventId || eventTitle,
       eventTitle,
-      memberId,
+      memberId:     memberId || "",
       memberName,
-      status,
-      date: new Date(),
-      timeIn: new Date(),
+      organization,
+      status:       normalizedStatus,
+      date:         new Date(),
+      timeIn:       new Date(),
       remarks,
       sourceSystem: system._id,
       lastSyncedAt: new Date(),
     });
 
-    const logMsg = status === "Absent" || status === "absent"
+    const logMsg = normalizedStatus === "Absent"
       ? `Attendance: ${memberName} marked ABSENT for "${eventTitle}" → ₱50 sanction auto-created (${autoSanction?.paymentId})`
-      : `Attendance: ${memberName} marked ${status || "Present"} for "${eventTitle}"`;
+      : `Attendance: ${memberName} marked Present for "${eventTitle}"`;
 
     await writeLog({
       system,
       method:     "POST",
       endpoint:   "/api/integration/push-attendance",
       action:     logMsg,
-      level:      status === "Absent" || status === "absent" ? "warning" : "success",
+      level:      normalizedStatus === "Absent" ? "warning" : "success",
       statusCode: 201,
-      meta:       { eventId, eventTitle, memberId, memberName, status, remarks, sanctionId: autoSanction?._id },
+      meta:       { eventId, eventTitle, memberId, memberName, organization, status: normalizedStatus, remarks, sanctionId: autoSanction?._id },
       ip:         req.ip,
     });
 
@@ -383,7 +421,7 @@ const pushAttendance = async (req, res) => {
     res.status(201).json({
       success:    true,
       message:    `Attendance for "${memberName}" recorded.`,
-      status,
+      status:     normalizedStatus,
       autoSanction: autoSanction
         ? { paymentId: autoSanction.paymentId, amount: autoSanction.amount, status: autoSanction.status }
         : null,
