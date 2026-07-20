@@ -117,11 +117,11 @@ const getMembers = async (req, res) => {
       }
 
       // Normalize status — prefer membershipStatus if status is missing
-      if (!obj.status && obj.membershipStatus) {
+      // The shared member-registration collection uses membershipStatus.
+      // Prefer it over the dashboard model's default status value.
+      if (obj.membershipStatus) {
         obj.status = obj.membershipStatus;
-      }
-
-      if (!obj.membershipStatus && obj.status) {
+      } else if (obj.status) {
         obj.membershipStatus = obj.status;
       }
 

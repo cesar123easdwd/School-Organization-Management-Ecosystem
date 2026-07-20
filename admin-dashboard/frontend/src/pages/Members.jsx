@@ -86,7 +86,7 @@ const Members = () => {
   // Normalize status — only Active / Inactive are valid; everything else
   // falls back to Active so the UI never shows unsupported badge text.
   const resolveStatus = (m) => {
-    const raw = (m.status || m.membershipStatus || 'Active').toString().trim();
+    const raw = (m.membershipStatus || m.status || 'Active').toString().trim();
     const normalized = raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
     // If the normalized value is a recognised status, use it; otherwise Active
     return STATUS_STYLE[normalized] ? normalized : 'Active';
