@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   AreaChart, Area,
   BarChart, Bar,
@@ -11,8 +11,10 @@ import dashboardService from '../services/dashboardService';
 /* ── Constants ────────────────────────────────────────────────────── */
 const PIE_COLORS   = { Paid: '#22c55e', Unpaid: '#ef4444', Waived: '#f59e0b' };
 const LEVEL_COLORS = { success: '#22c55e', info: '#7f1416', warning: '#f59e0b', error: '#ef4444' };
+const POLL_INTERVAL_MS = 30_000;
 
 const timeAgo = (dateStr) => {
+  if (!dateStr) return '—';
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins  = Math.floor(diff / 60000);
   if (mins < 1)  return 'just now';
@@ -31,18 +33,22 @@ const IconUsers = () => (
     <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
   </svg>
 );
-const IconLink = () => (
+
+const IconCalendar = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+    <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+    <line x1="3" y1="10" x2="21" y2="10"/>
   </svg>
 );
+
 const IconCoin = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <line x1="12" y1="1" x2="12" y2="23"/>
     <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
   </svg>
 );
+
 const IconAlertTriangle = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
@@ -109,14 +115,6 @@ const CustomTooltip = ({ active, payload, label }) => {
   );
 };
 
-/* ── Module name formatting ───────────────────────────────────────── */
-const MODULE_ICON_SVG = {
-  'member-registration': { label: 'Member Reg.', color: '#7f1416' },
-  'events-management':   { label: 'Events',      color: '#06b6d4' },
-  'attendance':          { label: 'Attendance',  color: '#22c55e' },
-  'payments':            { label: 'Payments',    color: '#f59e0b' },
-};
-
 /* ── Dashboard Page ───────────────────────────────────────────────── */
 const Dashboard = () => {
   const { user }  = useAuth();
@@ -124,34 +122,38 @@ const Dashboard = () => {
   const greeting  = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
   const firstName = user?.name?.split(' ')[0] || 'Admin';
 
-  const [loading,    setLoading]    = useState(true);
-  const [stats,      setStats]      = useState({});
-  const [systems,    setSystems]    = useState([]);
-  const [logs,       setLogs]       = useState([]);
-  const [monthly,    setMonthly]    = useState([]);
-  const [sanctionPie,setSanctionPie]= useState([]);
-  const [logLevels,  setLogLevels]  = useState([]);
+  const [loading,     setLoading]     = useState(true);
+  const [stats,       setStats]       = useState({});
+  const [monthly,     setMonthly]     = useState([]);
+  const [sanctionPie, setSanctionPie] = useState([]);
+  const [logLevels,   setLogLevels]   = useState([]);
+  const [lastUpdated, setLastUpdated] = useState(null);
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const data = await dashboardService.getStats();
-        if (data?.success) {
-          setStats(data.stats       ?? {});
-          setSystems(data.systems   ?? []);
-          setLogs(data.recentLogs   ?? []);
-          setMonthly(data.charts?.monthly      ?? []);
-          setSanctionPie(data.charts?.sanctionPie ?? []);
-          setLogLevels(data.charts?.logLevels  ?? []);
-        }
-      } catch (err) {
-        console.error('[Dashboard] failed to load stats:', err.message);
-      } finally {
-        setLoading(false);
+  const load = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
+    try {
+      const data = await dashboardService.getStats();
+      if (data?.success) {
+        setStats(data.stats                   ?? {});
+        setMonthly(data.charts?.monthly        ?? []);
+        setSanctionPie(data.charts?.sanctionPie ?? []);
+        setLogLevels(data.charts?.logLevels    ?? []);
+        setLastUpdated(new Date());
       }
-    };
-    load();
+    } catch (err) {
+      console.error('[Dashboard] failed to load stats:', err.message);
+    } finally {
+      if (!silent) setLoading(false);
+    }
   }, []);
+
+  useEffect(() => { load(false); }, [load]);
+
+  // Auto-refresh every 30 s
+  useEffect(() => {
+    const timer = setInterval(() => load(true), POLL_INTERVAL_MS);
+    return () => clearInterval(timer);
+  }, [load]);
 
   return (
     <main className="page-body" id="dashboard-page" role="main">
@@ -168,6 +170,11 @@ const Dashboard = () => {
             </svg>
             {new Date().toLocaleString('en-PH', { weekday: 'long', month: 'long', day: 'numeric' })}
           </span>
+          {lastUpdated && (
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+              Updated: {lastUpdated.toLocaleTimeString()}
+            </span>
+          )}
           {stats.todayActivity > 0 && (
             <span className="status-success">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display:'inline', verticalAlign:'middle', marginRight:'4px' }}>
@@ -176,6 +183,24 @@ const Dashboard = () => {
               {stats.todayActivity} activities today
             </span>
           )}
+          <button
+            id="dashboard-refresh-btn"
+            title="Refresh dashboard"
+            onClick={() => load(false)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '5px',
+              padding: '4px 12px', borderRadius: '8px',
+              border: '1px solid var(--border)', background: 'var(--surface)',
+              color: 'var(--text-secondary)', fontSize: '0.78rem',
+              cursor: 'pointer', transition: 'all 0.2s',
+            }}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+            </svg>
+            Refresh
+          </button>
         </div>
       </div>
 
@@ -185,9 +210,9 @@ const Dashboard = () => {
           value={stats.totalMembers ?? 0}
           sub={`${stats.totalMembers ?? 0} registered members`}
           trend={null} trendUp={true} />
-        <StatCard loading={loading} icon={<IconLink />} label="Online Systems" color="#06b6d4"
-          value={stats.onlineSystems ?? 0}
-          sub={`of ${systems.length} registered`}
+        <StatCard loading={loading} icon={<IconCalendar />} label="Total Events" color="#06b6d4"
+          value={stats.totalEvents ?? 0}
+          sub={`${stats.totalEvents ?? 0} events recorded`}
           trend={null} trendUp={true} />
         <StatCard loading={loading} icon={<IconCoin />} label="Collected Sanctions" color="#22c55e"
           value={`₱${(stats.collectedSanctions ?? 0).toLocaleString()}`}
@@ -202,7 +227,7 @@ const Dashboard = () => {
       {/* ── Charts Row 1: Area + Pie ─────────────────────────────── */}
       <div className="dashboard-charts-row">
 
-        {/* Monthly Transactions Area Chart */}
+        {/* Monthly Sanctions Area Chart */}
         <ChartCard
           title="Monthly Sanctions Overview"
           subtitle="Last 6 months — collected vs outstanding (₱)"
@@ -221,7 +246,7 @@ const Dashboard = () => {
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(15,23,42,0.08)" />
               <XAxis dataKey="month" tick={{ fill: '#64748b', fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: '#64748b', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => `₱${v}`} />
+              <YAxis tick={{ fill: '#64748b', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(v) => `₱${v}`} />
               <Tooltip content={<CustomTooltip />} />
               <Legend wrapperStyle={{ fontSize: '12px', color: '#475569', paddingTop: '8px' }} />
               <Area type="monotone" dataKey="collected" name="Collected" stroke="#22c55e" strokeWidth={2} fill="url(#gradCollected)" />
@@ -231,7 +256,7 @@ const Dashboard = () => {
         </ChartCard>
 
         {/* Sanction Status Pie */}
-        <ChartCard title="Sanction Status" subtitle="Distribution by status">
+        <ChartCard title="Sanction Status" subtitle="Distribution by payment status">
           {sanctionPie.length === 0 ? (
             <div className="empty-state" style={{ height: 220 }}>
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.3 }}>
@@ -248,7 +273,7 @@ const Dashboard = () => {
                   ))}
                 </Pie>
                 <PieTooltip
-                  formatter={(val, name, props) => [`${val} records (₱${props.payload.amount?.toLocaleString()})`, name]}
+                  formatter={(val, name, props) => [`${val} records (₱${(props.payload.amount || 0).toLocaleString()})`, name]}
                   contentStyle={{ background: '#ffffff', border: '1px solid rgba(15,23,42,0.12)', borderRadius: '10px', fontSize: '12px', color: '#1f2937' }}
                   labelStyle={{ color: '#475569' }}
                 />
@@ -259,18 +284,18 @@ const Dashboard = () => {
         </ChartCard>
       </div>
 
-      {/* ── Charts Row 2: Bar + Systems ─────────────────────────── */}
+      {/* ── Charts Row 2: Bar ────────────────────────────────────── */}
       <div className="dashboard-charts-subrow">
 
         {/* Log Level Bar Chart */}
-        <ChartCard title="Activity Log Breakdown" subtitle="Events by severity level">
+        <ChartCard title="Integration Activity" subtitle="API calls by severity level">
           {logLevels.length === 0 ? (
             <div className="empty-state" style={{ height: 200 }}>
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.3 }}>
                 <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
                 <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
               </svg>
-              <span>No activity logs yet.</span>
+              <span>No integration activity yet.</span>
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={200}>
@@ -282,7 +307,7 @@ const Dashboard = () => {
                   contentStyle={{ background: '#ffffff', border: '1px solid rgba(15,23,42,0.12)', borderRadius: '10px', fontSize: '12px', color: '#1f2937' }}
                   cursor={{ fill: 'rgba(127,20,22,0.05)' }}
                 />
-                <Bar dataKey="count" name="Events" radius={[6, 6, 0, 0]}>
+                <Bar dataKey="count" name="API Calls" radius={[6, 6, 0, 0]}>
                   {logLevels.map((entry) => (
                     <Cell key={entry.level} fill={LEVEL_COLORS[entry.level] || '#7f1416'} />
                   ))}
@@ -292,107 +317,7 @@ const Dashboard = () => {
           )}
         </ChartCard>
 
-        {/* Connected Systems Status */}
-        <ChartCard title="Connected Systems" subtitle="Real-time sub-system status"
-          action={<a href="/systems" className="chart-card-action">Manage →</a>}
-        >
-          <div className="systems-status-list">
-            {systems.length === 0 ? (
-              <p className="empty-state">No systems registered.</p>
-            ) : systems.map(sys => {
-              const meta = MODULE_ICON_SVG[sys.module];
-              return (
-                <div key={sys._id} className="system-status-item">
-                  <div style={{
-                    width: '32px', height: '32px', borderRadius: '8px',
-                    background: meta ? `${meta.color}15` : 'rgba(15,23,42,0.08)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    flexShrink: 0,
-                  }}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={meta?.color || '#64748b'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-                      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
-                    </svg>
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div className="system-status-name">{sys.name}</div>
-                    <div className="system-status-meta">
-                      {sys.lastSeen ? `Last seen ${timeAgo(sys.lastSeen)}` : 'Never connected'}
-                    </div>
-                  </div>
-                  <div className={`system-status-badge ${sys.status === 'online' ? 'online' : ''}`}>
-                    <span className="system-status-dot" style={{
-                      background: sys.status === 'online' ? '#22c55e' : '#64748b',
-                      boxShadow: sys.status === 'online' ? '0 0 6px #22c55e' : 'none',
-                      animation: sys.status === 'online' ? 'pulse 2s infinite' : 'none',
-                    }} />
-                    {sys.status === 'online' ? 'Online' : 'Offline'}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </ChartCard>
       </div>
-
-      {/* ── Activity Timeline ────────────────────────────────────── */}
-      <ChartCard title="Recent Activity" subtitle="Latest events from all connected systems"
-        action={<a href="/logs" className="chart-card-action">View All →</a>}
-      >
-        <div style={{ padding: '4px 0' }}>
-          {logs.length === 0 ? (
-            <div className="empty-state">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block', margin: '0 auto 8px', opacity: 0.3 }}>
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                <polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/>
-                <line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
-              </svg>
-              No activity logs yet. They will appear here once integration actions are completed.
-            </div>
-          ) : logs.map((log, i) => {
-            const colors = { success: '#22c55e', info: '#7f1416', warning: '#f59e0b', error: '#ef4444' };
-            const icons  = {
-              success: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
-              info:    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>,
-              warning: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
-              error:   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
-            };
-            return (
-              <div key={log._id} className="activity-item" style={{ borderBottom: i < logs.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                <div className="activity-dot" style={{
-                  background: `${colors[log.level] || '#7f1416'}18`,
-                  border: `1px solid ${colors[log.level] || '#7f1416'}40`,
-                  color: colors[log.level] || '#7f1416',
-                }}>
-                  {icons[log.level] || icons.info}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: '13px', color: 'var(--text-primary)', fontWeight: 500, lineHeight: 1.4 }}>
-                    {log.action}
-                  </div>
-                  <div style={{ display: 'flex', gap: '8px', marginTop: '3px', alignItems: 'center' }}>
-                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                      {log.systemName || log.system?.name || 'Admin Dashboard'}
-                    </span>
-                    <span style={{ fontSize: '11px', color: 'rgba(15,23,42,0.3)' }}>·</span>
-                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                      {timeAgo(log.createdAt)}
-                    </span>
-                  </div>
-                </div>
-                <span style={{
-                  fontSize: '10px', fontWeight: 700, letterSpacing: '0.5px',
-                  color: colors[log.level] || '#7f1416',
-                  background: `${colors[log.level] || '#7f1416'}18`,
-                  padding: '2px 7px', borderRadius: '99px', flexShrink: 0, alignSelf: 'center',
-                }}>
-                  {log.level?.toUpperCase()}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      </ChartCard>
 
       {/* Pulse + skeleton animations */}
       <style>{`

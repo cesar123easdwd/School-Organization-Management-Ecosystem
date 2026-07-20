@@ -1,88 +1,70 @@
 const Transaction    = require("../models/transaction");
-const System         = require("../models/system");
 const IntegrationLog = require("../models/integrationLog");
 const Member         = require("../models/member");
 const Event          = require("../models/event");
 
-const ONLINE_STATUS_WINDOW_MS = 5 * 60 * 1000;
+/**
+ * Normalize payment status from ANY format the sub-system may use.
+ * This MUST stay in sync with transactionController.normalizePaymentStatus.
+ *
+ * Teammate schema uses:
+ *   - paymentStatus: "paid" | "unpaid"  (dedicated payment field)
+ *   - isPaid:        true | false        (boolean flag)
+ *   - status:        "absent"            (attendance status — NOT payment)
+ *
+ * Our API schema uses:
+ *   - status: "Paid" | "Unpaid" | "Waived"
+ */
+const normalizePaymentStatus = (row) => {
+  // 1. Check our own status — only if it's a real payment value (not "absent")
+  const raw = String(row.status || "").trim().toLowerCase();
+  if (raw === "paid")   return "Paid";
+  if (raw === "waived") return "Waived";
+  if (raw === "unpaid") return "Unpaid";
 
-const normalizeTransactionStatus = (rawStatus) => {
-  const value = String(rawStatus || "").trim().toLowerCase();
-  if (value === "paid") return "Paid";
-  if (value === "waived") return "Waived";
+  // 2. Check teammate's dedicated paymentStatus field
+  const ps = String(row.paymentStatus || "").trim().toLowerCase();
+  if (ps === "paid")   return "Paid";
+  if (ps === "waived") return "Waived";
+  if (ps === "unpaid") return "Unpaid";
+
+  // 3. Check teammate's boolean isPaid flag
+  if (row.isPaid === true)  return "Paid";
+  if (row.isPaid === false) return "Unpaid";
+
+  // 4. Safe fallback
   return "Unpaid";
-};
-
-const getRealtimeSystemStatus = (system) => {
-  if (!system?.lastSeen) return 'offline';
-  if (system.status === 'error') return 'error';
-  return (Date.now() - new Date(system.lastSeen).getTime()) <= ONLINE_STATUS_WINDOW_MS ? 'online' : 'offline';
 };
 
 /* ══════════════════════════════════════════════════════════════════
    GET /api/dashboard/stats
    Returns:
-     - 4 summary stats (stat cards)
-     - Recent activity logs
+     - Summary stats (stat cards)
      - Monthly transaction chart data (last 6 months)
      - Sanction status breakdown (pie chart)
      - Integration log level breakdown (bar chart)
-     - System uptime summary
    ══════════════════════════════════════════════════════════════════ */
 const getStats = async (req, res) => {
   try {
     /* ── Core stat card numbers ──────────────────────────────────── */
-    const [
-      totalMembers,
-      totalEvents,
-      recentLogs,
-      allSystems,
-    ] = await Promise.all([
-      // Count directly from Member collection
+    const [totalMembers, totalEvents] = await Promise.all([
       Member.countDocuments(),
-
-      // Count directly from Event collection
       Event.countDocuments(),
-
-      IntegrationLog.find()
-        .sort({ createdAt: -1 })
-        .limit(8)
-        .populate("system", "name"),
-
-      System.find().select("name status module lastSeen"),
     ]);
 
-    const allSystemsWithStatus = allSystems.map((sys) => {
-      const obj = sys.toObject();
-      obj.status = getRealtimeSystemStatus(obj);
-      return obj;
-    });
-
-    const onlineSystems = allSystemsWithStatus.filter((sys) => sys.status === 'online').length;
-
     /* ── Monthly transactions chart (last 6 months) ──────────────── */
+    // NOTE: We do NOT use MongoDB aggregation for collected/unpaid because
+    // the teammate's records use paymentStatus/isPaid (not the "status" field).
+    // We fetch raw docs and normalize in JS to ensure accuracy.
     const sixMonthsAgo = new Date();
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
     sixMonthsAgo.setDate(1);
     sixMonthsAgo.setHours(0, 0, 0, 0);
 
-    const monthlyTransactions = await Transaction.aggregate([
-      { $match: { createdAt: { $gte: sixMonthsAgo } } },
-      {
-        $group: {
-          _id: {
-            year:  { $year:  "$createdAt" },
-            month: { $month: "$createdAt" },
-          },
-          collected: { $sum: { $cond: [{ $eq: ["$status", "Paid"]   }, "$amount", 0] } },
-          unpaid:    { $sum: { $cond: [{ $eq: ["$status", "Unpaid"] }, "$amount", 0] } },
-          count:     { $sum: 1 },
-        },
-      },
-      { $sort: { "_id.year": 1, "_id.month": 1 } },
-    ]);
+    const recentTransactions = await Transaction.find({ createdAt: { $gte: sixMonthsAgo } })
+      .select("status paymentStatus isPaid amount createdAt")
+      .lean();
 
-    // Fill in months with no data so the chart has a continuous axis
     const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     const chartMonths = [];
     for (let i = 5; i >= 0; i--) {
@@ -91,76 +73,80 @@ const getStats = async (req, res) => {
       chartMonths.push({ year: d.getFullYear(), month: d.getMonth() + 1, label: MONTHS[d.getMonth()] });
     }
 
-    const monthlyChart = chartMonths.map(m => {
-      const found = monthlyTransactions.find(t => t._id.year === m.year && t._id.month === m.month);
-      return {
-        month:     m.label,
-        collected: found?.collected ?? 0,
-        unpaid:    found?.unpaid    ?? 0,
-        total:     found?.count     ?? 0,
-      };
+    const monthlyChart = chartMonths.map(({ year, month, label }) => {
+      const monthDocs = recentTransactions.filter((t) => {
+        const d = new Date(t.createdAt);
+        return d.getFullYear() === year && d.getMonth() + 1 === month;
+      });
+      let collected = 0;
+      let unpaid    = 0;
+      monthDocs.forEach((t) => {
+        const s = normalizePaymentStatus(t);
+        const a = Number(t.amount || 0);
+        if (s === "Paid") collected += a;
+        else              unpaid    += a;
+      });
+      return { month: label, collected, unpaid, total: monthDocs.length };
     });
 
-    /* ── Sanction status pie chart + normalized totals ───────────── */
-    const sanctionRaw = await Transaction.find().select("status amount").lean();
+    /* ── Sanction status breakdown (all records) ─────────────────── */
+    const allTransactions = await Transaction.find()
+      .select("status paymentStatus isPaid amount")
+      .lean();
+
     let normalizedCollectedTotal = 0;
-    let normalizedUnpaidTotal = 0;
-    const sanctionBuckets = sanctionRaw.reduce((acc, row) => {
-      const status = normalizeTransactionStatus(row.status);
+    let normalizedUnpaidTotal    = 0;
+    const sanctionBuckets = {};
+
+    allTransactions.forEach((row) => {
+      const status = normalizePaymentStatus(row);
       const amount = Number(row.amount || 0);
-      if (!acc[status]) {
-        acc[status] = { _id: status, value: 0, amount: 0 };
-      }
-      acc[status].value += 1;
-      acc[status].amount += amount;
 
-      if (status === "Paid") {
-        normalizedCollectedTotal += amount;
-      } else {
-        normalizedUnpaidTotal += amount;
+      if (!sanctionBuckets[status]) {
+        sanctionBuckets[status] = { _id: status, value: 0, amount: 0 };
       }
+      sanctionBuckets[status].value  += 1;
+      sanctionBuckets[status].amount += amount;
 
-      return acc;
-    }, {});
+      if (status === "Paid") normalizedCollectedTotal += amount;
+      else                   normalizedUnpaidTotal    += amount;
+    });
+
     const sanctionPie = Object.values(sanctionBuckets);
 
     /* ── Integration log level breakdown (bar chart) ─────────────── */
-    const logLevels = await IntegrationLog.aggregate([
+    const logLevelsRaw = await IntegrationLog.aggregate([
       { $group: { _id: "$level", count: { $sum: 1 } } },
     ]);
 
     /* ── Recent activity (last 24h) count ────────────────────────── */
-    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const oneDayAgo           = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const recentActivityCount = await IntegrationLog.countDocuments({ createdAt: { $gte: oneDayAgo } });
-
-    const totalTransactions = await Transaction.countDocuments();
-    const todayTransactions  = await Transaction.countDocuments({ createdAt: { $gte: oneDayAgo } });
+    const todayTransactions   = allTransactions.filter(
+      (t) => new Date(t.createdAt) >= oneDayAgo
+    ).length;
 
     res.status(200).json({
       success: true,
 
       stats: {
         totalMembers,
-        onlineSystems,
+        totalEvents,
         collectedSanctions: normalizedCollectedTotal,
         unpaidSanctions:    normalizedUnpaidTotal,
-        totalEvents,
-        totalTransactions,
+        totalTransactions:  allTransactions.length,
         todayActivity:      recentActivityCount,
         todayTransactions,
       },
 
-      systems:    allSystemsWithStatus,
-      recentLogs,
-
       charts: {
         monthly:     monthlyChart,
-        sanctionPie: sanctionPie.map(s => ({
+        sanctionPie: sanctionPie.map((s) => ({
           name:   s._id || "Unknown",
           value:  s.value,
           amount: s.amount,
         })),
-        logLevels: logLevels.map(l => ({
+        logLevels: logLevelsRaw.map((l) => ({
           level: l._id,
           count: l.count,
         })),

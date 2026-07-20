@@ -15,8 +15,6 @@ import Events     from "../pages/Events";
 import Attendance from "../pages/Attendance";
 import Payments   from "../pages/Payments";
 import Reports    from "../pages/Reports";
-import Systems    from "../pages/Systems";
-import Logs       from "../pages/Logs";
 import Users      from "../pages/Users";
 
 /**
@@ -50,8 +48,6 @@ const AppRoutes = () => (
       <Route path="attendance" element={<Attendance />} />
       <Route path="payments"   element={<Payments />}   />
       <Route path="reports"    element={<Reports />}    />
-      <Route path="systems"    element={<Systems />}    />
-      <Route path="logs"       element={<Logs />}       />
       <Route path="users"      element={<Users />}      />
     </Route>
 
