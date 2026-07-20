@@ -3,10 +3,20 @@ const Transaction = require("../models/transaction");
 
 const normalizeLookupKey = (value) => String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
 
-const normalizeTransactionStatus = (rawStatus) => {
-  const value = String(rawStatus || "").trim().toLowerCase();
+const normalizeTransactionStatus = (transaction) => {
+  const value = String(transaction.status || "").trim().toLowerCase();
   if (value === "paid") return "Paid";
   if (value === "waived") return "Waived";
+
+  // The sanctions/payment system uses these fields instead of the generic
+  // status field (which can contain a non-payment value such as "absent").
+  const paymentStatus = String(transaction.paymentStatus || "").trim().toLowerCase();
+  if (paymentStatus === "paid") return "Paid";
+  if (paymentStatus === "waived") return "Waived";
+  if (paymentStatus === "unpaid") return "Unpaid";
+  if (transaction.isPaid === true) return "Paid";
+  if (transaction.isPaid === false) return "Unpaid";
+
   return "Unpaid";
 };
 
@@ -53,18 +63,23 @@ const getMembers = async (req, res) => {
   try {
     const [members, transactions] = await Promise.all([
       Member.find().sort({ lastSyncedAt: -1, createdAt: -1 }),
-      Transaction.find().select("memberId memberName amount status").lean(),
+      Transaction.find().select("memberId studentId memberName name amount status paymentStatus isPaid").lean(),
     ]);
 
     const sanctionTotals = transactions.reduce((totals, transaction) => {
       const amount = Number(transaction.amount || 0);
-      const status = normalizeTransactionStatus(transaction.status);
+      const status = normalizeTransactionStatus(transaction);
 
       if (!Number.isFinite(amount) || amount === 0 || status !== "Unpaid") {
         return totals;
       }
 
-      const keys = [transaction.memberId, transaction.memberName]
+      const keys = [
+        transaction.memberId,
+        transaction.studentId,
+        transaction.memberName,
+        transaction.name,
+      ]
         .map(normalizeLookupKey)
         .filter(Boolean);
 

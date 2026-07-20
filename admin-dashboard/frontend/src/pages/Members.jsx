@@ -15,6 +15,7 @@ const Members = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('All');
+  const [organizationFilter, setOrganizationFilter] = useState('All');
   const [lastUpdated, setLastUpdated] = useState(null);
 
   // ── Fetch members ─────────────────────────────────────────────────
@@ -93,6 +94,12 @@ const Members = () => {
   };
 
   // ── Filtering ─────────────────────────────────────────────────────
+  const organizations = [...new Set(
+    members
+      .map(resolveOrganization)
+      .filter((organization) => organization !== 'â€”')
+  )].sort((a, b) => a.localeCompare(b));
+
   const filtered = members.filter((m) => {
     const name         = resolveName(m).toLowerCase();
     const id           = resolveId(m).toString().toLowerCase();
@@ -100,7 +107,8 @@ const Members = () => {
     const matchSearch  = name.includes(search.toLowerCase()) || id.includes(search.toLowerCase()) || organization.includes(search.toLowerCase());
     const status       = resolveStatus(m);
     const matchFilter  = filter === 'All' || status === filter;
-    return matchSearch && matchFilter;
+    const matchOrganization = organizationFilter === 'All' || organization === organizationFilter.toLowerCase();
+    return matchSearch && matchFilter && matchOrganization;
   });
 
   // ── Render ────────────────────────────────────────────────────────
@@ -149,7 +157,8 @@ const Members = () => {
       {/* Search + Table Card */}
       <div className="table-card">
         <div className="table-toolbar">
-          <div className="search-box">
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+            <label className="search-box" style={{ minWidth: '220px' }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="search-icon">
               <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
@@ -161,6 +170,22 @@ const Members = () => {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
+            </label>
+
+            <label className="search-box" style={{ minWidth: '200px' }}>
+          <select
+            id="members-organization-filter"
+            className="search-input"
+            aria-label="Filter members by organization"
+            value={organizationFilter}
+            onChange={(e) => setOrganizationFilter(e.target.value)}
+          >
+            <option value="All">All organizations</option>
+            {organizations.map((organization) => (
+              <option key={organization} value={organization}>{organization}</option>
+            ))}
+          </select>
+            </label>
           </div>
 
           {/* Manual refresh button */}
