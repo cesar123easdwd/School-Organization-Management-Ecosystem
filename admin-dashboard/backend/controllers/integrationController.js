@@ -167,6 +167,15 @@ const getLogs = async (req, res) => {
    Headers: x-api-key: <Member Registration API key>
    Body: { memberId, firstName, lastName, email, course, year, status }
    ══════════════════════════════════════════════════════════════════ */
+// Normalise a status string → "Active" | "Inactive" (default: "Active")
+const normalizeMemberStatus = (raw) => {
+  if (!raw) return "Active";
+  const s = String(raw).trim();
+  const cap = s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+  if (cap === "Inactive") return "Inactive";
+  return "Active";
+};
+
 const pushMember = async (req, res) => {
   try {
     const system = req.system;
@@ -174,31 +183,48 @@ const pushMember = async (req, res) => {
       return res.status(401).json({ success: false, message: "Invalid or inactive API key." });
     }
 
-    const { memberId, firstName, lastName, email, course, year, organization, organizationId, status, membershipStatus } = req.body;
+    const {
+      memberId, studentId,
+      firstName, lastName,
+      email, course, year,
+      organization, organizationId,
+      status, membershipStatus,
+    } = req.body;
+
     if (!firstName || !lastName) {
       return res.status(400).json({ success: false, message: "firstName and lastName are required." });
     }
 
-    const fullName = `${firstName} ${lastName}`;
+    const fullName       = `${firstName} ${lastName}`.trim();
+    const resolvedId     = memberId || studentId || email || fullName;
+    const resolvedStatus = normalizeMemberStatus(status || membershipStatus);
+
+    // Build a flexible OR filter so we find the record whether the
+    // teammate used memberId, studentId, email, or fullName as the key.
+    const orClauses = [{ memberId: resolvedId }];
+    if (email)    orClauses.push({ email: email.toLowerCase().trim() });
+    if (fullName) orClauses.push({ fullName });
+
+    const updatePayload = {
+      memberId:         resolvedId,
+      firstName,
+      lastName,
+      fullName,
+      ...(email    && { email: email.toLowerCase().trim() }),
+      ...(course   && { course }),
+      ...(year     && { year: String(year) }),
+      organization:     organization || organizationId || "",
+      organizationId:   organizationId || organization || "",
+      status:           resolvedStatus,
+      membershipStatus: resolvedStatus,
+      sourceSystem:     system._id,
+      systemName:       system.name,
+      lastSyncedAt:     new Date(),
+    };
 
     await Member.findOneAndUpdate(
-      { memberId: memberId || email || fullName },
-      {
-        memberId: memberId || email || fullName,
-        firstName,
-        lastName,
-        fullName,
-        email,
-        course,
-        year,
-        organization: organization || organizationId || "",
-        organizationId: organizationId || organization || "",
-        status: status || membershipStatus || "Active",
-        membershipStatus: membershipStatus || status || "Active",
-        sourceSystem: system._id,
-        systemName: system.name,
-        lastSyncedAt: new Date(),
-      },
+      { $or: orClauses },
+      { $set: updatePayload },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 
@@ -206,10 +232,10 @@ const pushMember = async (req, res) => {
       system,
       method:     "POST",
       endpoint:   "/api/integration/push-member",
-      action:     `Member synced: ${fullName}${course ? ` – ${course}` : ""}${year ? ` Year ${year}` : ""}`,
+      action:     `Member synced: ${fullName}${course ? ` – ${course}` : ""}${year ? ` Year ${year}` : ""} [status: ${resolvedStatus}]`,
       level:      "info",
       statusCode: 201,
-      meta:       { memberId, firstName, lastName, email, course, year, organization: organization || organizationId, status: status || membershipStatus },
+      meta:       { memberId: resolvedId, firstName, lastName, email, course, year, organization: organization || organizationId, status: resolvedStatus },
       ip:         req.ip,
     });
 
@@ -220,7 +246,7 @@ const pushMember = async (req, res) => {
     res.status(201).json({
       success: true,
       message: `Member "${fullName}" received and logged.`,
-      received: { memberId, firstName, lastName, email, course, year, organization: organization || organizationId, status: status || membershipStatus },
+      received: { memberId: resolvedId, firstName, lastName, email, course, year, organization: organization || organizationId, status: resolvedStatus },
     });
 
   } catch (error) {

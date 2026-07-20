@@ -146,4 +146,45 @@ const getMembers = async (req, res) => {
   }
 };
 
-module.exports = { getMembers };
+// Only Active and Inactive are valid member statuses
+const normalizeMemberStatus = (raw) => {
+  if (!raw) return "Active";
+  const cap = String(raw).trim();
+  const normalized = cap.charAt(0).toUpperCase() + cap.slice(1).toLowerCase();
+  return normalized === "Inactive" ? "Inactive" : "Active";
+};
+
+/**
+ * PATCH /api/members/:id/status
+ * Body: { status: "Active" | "Inactive" }
+ * Updates only the status (and membershipStatus) fields of a member.
+ */
+const updateMemberStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!status) {
+      return res.status(400).json({ success: false, message: "status is required." });
+    }
+
+    const normalizedStatus = normalizeMemberStatus(status);
+
+    const member = await Member.findByIdAndUpdate(
+      id,
+      { $set: { status: normalizedStatus, membershipStatus: normalizedStatus, lastSyncedAt: new Date() } },
+      { new: true }
+    );
+
+    if (!member) {
+      return res.status(404).json({ success: false, message: "Member not found." });
+    }
+
+    res.status(200).json({ success: true, member: { _id: member._id, status: member.status } });
+  } catch (error) {
+    console.error("[memberController.updateMemberStatus]", error.message);
+    res.status(500).json({ success: false, message: "Failed to update member status." });
+  }
+};
+
+module.exports = { getMembers, updateMemberStatus };
