@@ -259,8 +259,28 @@ const pushMember = async (req, res) => {
    POST /api/integration/push-event
    Events Management sub-system pushes a new or updated event.
    Headers: x-api-key: <Events Management API key>
-   Body: { eventId, title, description, location, date, organizer, status }
+   Body: {
+     eventId, title, description,
+     location | venue,
+     date | schedule,
+     organizer | organizingClub,
+     status, type
+   }
    ══════════════════════════════════════════════════════════════════ */
+
+const VALID_EVENT_STATUSES = ["Drafted", "Active", "Postponed", "Completed", "Cancelled"];
+
+const normalizeEventStatus = (raw) => {
+  if (!raw) return "Drafted";
+  const s = String(raw).trim();
+  const cap = s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+  if (VALID_EVENT_STATUSES.includes(cap)) return cap;
+  const lower = s.toLowerCase();
+  if (lower === "upcoming" || lower === "draft") return "Drafted";
+  if (lower === "ongoing")                       return "Active";
+  return "Drafted";
+};
+
 const pushEvent = async (req, res) => {
   try {
     const system = req.system;
@@ -268,23 +288,45 @@ const pushEvent = async (req, res) => {
       return res.status(401).json({ success: false, message: "Invalid or inactive API key." });
     }
 
-    const { eventId, title, description, location, date, organizer, status } = req.body;
+    const {
+      eventId, title, description,
+      location, venue,
+      date, schedule,
+      organizer, organizingClub,
+      status, type,
+    } = req.body;
+
     if (!title) {
       return res.status(400).json({ success: false, message: "Event title is required." });
     }
 
+    // Resolve field aliases so either naming convention works
+    const resolvedLocation  = (location  || venue          || "").trim();
+    const resolvedDate      = date || schedule ? new Date(date || schedule) : new Date();
+    const resolvedOrganizer = (organizer || organizingClub || "").trim();
+    const resolvedStatus    = normalizeEventStatus(status);
+
+    const orClauses = [{ eventId: eventId || title }];
+    if (title) orClauses.push({ title });
+
     await Event.findOneAndUpdate(
-      { eventId: eventId || title },
+      { $or: orClauses },
       {
-        eventId: eventId || title,
-        title,
-        description,
-        location,
-        date: date ? new Date(date) : new Date(),
-        organizer,
-        status,
-        sourceSystem: system._id,
-        lastSyncedAt: new Date(),
+        $set: {
+          eventId:        eventId || title,
+          title,
+          description:    description || "",
+          location:       resolvedLocation,
+          venue:          resolvedLocation,
+          date:           resolvedDate,
+          schedule:       resolvedDate,
+          organizer:      resolvedOrganizer,
+          organizingClub: resolvedOrganizer,
+          status:         resolvedStatus,
+          type:           type || "",
+          sourceSystem:   system._id,
+          lastSyncedAt:   new Date(),
+        },
       },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
@@ -293,10 +335,10 @@ const pushEvent = async (req, res) => {
       system,
       method:     "POST",
       endpoint:   "/api/integration/push-event",
-      action:     `Event synced: "${title}"${location ? ` at ${location}` : ""}${date ? ` on ${new Date(date).toLocaleDateString()}` : ""}`,
+      action:     `Event synced: "${title}" [${resolvedStatus}]${resolvedLocation ? ` at ${resolvedLocation}` : ""}`,
       level:      "info",
       statusCode: 201,
-      meta:       { eventId, title, description, location, date, organizer, status },
+      meta:       { eventId, title, location: resolvedLocation, date: resolvedDate, organizer: resolvedOrganizer, status: resolvedStatus },
       ip:         req.ip,
     });
 
@@ -307,7 +349,7 @@ const pushEvent = async (req, res) => {
     res.status(201).json({
       success: true,
       message: `Event "${title}" received and logged.`,
-      received: { eventId, title, location, date, organizer, status },
+      received: { eventId, title, location: resolvedLocation, date: resolvedDate, organizer: resolvedOrganizer, status: resolvedStatus },
     });
 
   } catch (error) {

@@ -1,88 +1,75 @@
 const mongoose = require("mongoose");
 
 /**
- * Transaction Model
- * Represents a sanction or fee record for a member.
- * Created by the Payments sub-system or directly by the admin.
+ * Transaction / Sanction Model
+ * Stored in the "sanction" collection.
+ *
+ * Handles both:
+ *   (a) Our API schema:       status, reason, memberName, sanctionDate, paymentId
+ *   (b) Teammate's schema:    paymentStatus, isPaid, event (reason text), name,
+ *                             memberId/studentId, date (string), attendanceId
+ *
+ * Valid payment statuses: Paid | Unpaid | Waived
  */
 const transactionSchema = new mongoose.Schema(
   {
-    // Human-readable payment ID, e.g. "PAY-001"
+    // ── Payment ID ────────────────────────────────────────────────
     paymentId: {
       type:   String,
-      unique: true,
-    },
-
-    // Member information (mirrored from Member Registration sub-system)
-    memberId: {
-      type:   String,
+      trim:   true,
       default: "",
     },
 
-    memberName: {
-      type:     String,
-      required: [true, "Member name is required"],
-      trim:     true,
-    },
+    // ── Member info ───────────────────────────────────────────────
+    memberId: { type: String, default: "", trim: true },
+    studentId: { type: String, default: "", trim: true },
+    memberName: { type: String, default: "", trim: true },
+    name: { type: String, default: "", trim: true }, // teammate's field
 
-    // Description of the violation or fee
-    reason: {
-      type:     String,
-      required: [true, "Reason is required"],
-      trim:     true,
-    },
+    // ── Reason / description ──────────────────────────────────────
+    // Our schema: "reason"
+    // Teammate's schema: "event" (full text like "Unexcused Absence - Seminar (JPICE Seminar)")
+    reason: { type: String, default: "", trim: true },
+    event:  { type: String, default: "", trim: true }, // teammate's reason field
 
-    amount: {
-      type:     Number,
-      required: [true, "Amount is required"],
-      min:      [0, "Amount cannot be negative"],
-    },
+    // ── Amount ────────────────────────────────────────────────────
+    amount: { type: Number, default: 0, min: 0 },
 
-    status: {
-      type:    String,
-      enum:    ["Unpaid", "Paid", "Waived"],
-      default: "Unpaid",
-    },
+    // ── Payment Status ────────────────────────────────────────────
+    // Our schema:      status: "Paid" | "Unpaid" | "Waived"
+    // Teammate schema: paymentStatus: "paid" | "unpaid", isPaid: true | false
+    //                  NOTE: teammate also has status: "absent" (attendance, NOT payment)
+    status:        { type: String, trim: true, default: "" },
+    paymentStatus: { type: String, trim: true, default: "" },
+    isPaid:        { type: Boolean, default: null },
 
-    // Date when the sanction was incurred (not necessarily today)
-    sanctionDate: {
-      type:    Date,
-      default: Date.now,
-    },
+    // ── Dates ─────────────────────────────────────────────────────
+    sanctionDate: { type: Date,   default: null },
+    paidAt:       { type: Date,   default: null },
+    // Teammate stores date as a string "2026-07-20 06:27"
+    date:         { type: mongoose.Schema.Types.Mixed, default: null },
+    processedAt:  { type: mongoose.Schema.Types.Mixed, default: null },
 
-    // Date when the payment was actually collected
-    paidAt: {
-      type: Date,
-    },
+    // ── References ────────────────────────────────────────────────
+    attendanceId: { type: String, default: "" }, // teammate links back to attendance
+    sourceSystem: { type: mongoose.Schema.Types.ObjectId, ref: "System", default: null },
+    recordedBy:   { type: mongoose.Schema.Types.ObjectId, ref: "User",   default: null },
 
-    // Which connected system sent this record (null = entered by admin)
-    sourceSystem: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref:  "System",
-      default: null,
-    },
-
-    // Admin who recorded or last updated this transaction
-    recordedBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref:  "User",
-    },
-
-    notes: {
-      type:    String,
-      default: "",
-      trim:    true,
-    },
+    // ── Misc ──────────────────────────────────────────────────────
+    notes:       { type: String, default: "", trim: true },
+    description: { type: String, default: "", trim: true },
+    eventType:   { type: String, default: "", trim: true },
   },
   {
     timestamps: true,
     collection: "sanction",
+    strict: false, // preserve all extra fields from teammate's system
   }
 );
 
-/* ─── Auto-generate paymentId before first save ────────────────── */
+/* ─── Auto-generate paymentId before first save (only for new records via our API) */
 transactionSchema.pre("save", async function () {
-  if (this.paymentId) return; // already set
+  if (this.paymentId) return;
   const count = await mongoose.model("Transaction").countDocuments();
   this.paymentId = `PAY-${String(count + 1).padStart(3, "0")}`;
 });
