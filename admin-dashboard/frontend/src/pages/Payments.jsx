@@ -127,6 +127,13 @@ const Payments = () => {
             </svg>
             Synced from connected systems
           </div>
+          <a
+            href="https://sia-sanction-payment-management.vercel.app"
+            className="btn-primary"
+            style={{ textDecoration: 'none' }}
+          >
+            Manage Payments
+          </a>
         </div>
       </div>
 

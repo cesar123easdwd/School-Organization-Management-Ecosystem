@@ -135,6 +135,13 @@ const Events = () => {
             </svg>
             Synced from connected systems
           </div>
+          <a
+            href="https://sia-2-events-management.vercel.app"
+            className="btn-primary"
+            style={{ textDecoration: 'none' }}
+          >
+            Manage Events
+          </a>
         </div>
       </div>
 

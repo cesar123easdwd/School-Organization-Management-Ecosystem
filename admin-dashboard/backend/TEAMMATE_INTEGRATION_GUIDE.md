@@ -164,6 +164,7 @@ x-api-key: sk_39cbeaea5f83769b592adb03ba800af502726f7c2f88de35
 ### When to call this
 - After a new member registers in your system
 - After a member's profile is updated
+- Immediately after a member's status changes. You can send the complete member payload, or a status-only payload such as `{ "memberId": "MBR-001", "isActive": false }`.
 - When your server starts (to sync existing members with the dashboard)
 
 ### Example (Express)

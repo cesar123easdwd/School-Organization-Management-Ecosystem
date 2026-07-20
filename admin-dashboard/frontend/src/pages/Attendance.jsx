@@ -201,6 +201,13 @@ const Attendance = () => {
             </svg>
             Synced from connected systems
           </div>
+          <a
+            href="https://sia-2-final-project.vercel.app/"
+            className="btn-primary"
+            style={{ textDecoration: 'none' }}
+          >
+            Manage Attendance
+          </a>
         </div>
       </div>
 

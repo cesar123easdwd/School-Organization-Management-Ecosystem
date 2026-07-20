@@ -112,11 +112,20 @@ const Members = () => {
           <h1 className="page-title">Members</h1>
           <p className="page-desc">Manage all registered organization members</p>
         </div>
-        {lastUpdated && (
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', alignSelf: 'flex-end' }}>
-            Last updated: {lastUpdated.toLocaleTimeString()}
-          </span>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          {lastUpdated && (
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+              Last updated: {lastUpdated.toLocaleTimeString()}
+            </span>
+          )}
+          <a
+            href="https://member-registration-two.vercel.app/"
+            className="btn-primary"
+            style={{ textDecoration: 'none' }}
+          >
+            Add Member
+          </a>
+        </div>
       </div>
 
       {/* Summary Chips — only All, Active, Inactive */}

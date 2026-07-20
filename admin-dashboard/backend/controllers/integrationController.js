@@ -169,6 +169,7 @@ const getLogs = async (req, res) => {
    ══════════════════════════════════════════════════════════════════ */
 // Normalise a status string → "Active" | "Inactive" (default: "Active")
 const normalizeMemberStatus = (raw) => {
+  if (typeof raw === "boolean") return raw ? "Active" : "Inactive";
   if (!raw) return "Active";
   const s = String(raw).trim();
   const cap = s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
@@ -188,16 +189,54 @@ const pushMember = async (req, res) => {
       firstName, lastName,
       email, course, year,
       organization, organizationId,
-      status, membershipStatus,
+      status, membershipStatus, isActive, isInactive, active,
     } = req.body;
 
-    if (!firstName || !lastName) {
-      return res.status(400).json({ success: false, message: "firstName and lastName are required." });
-    }
+    const fullName = `${firstName || ""} ${lastName || ""}`.trim();
+    const resolvedId = memberId || studentId || email || fullName;
+    const rawStatus = status ?? membershipStatus ??
+      (typeof isActive === "boolean" ? isActive : undefined) ??
+      (typeof active === "boolean" ? active : undefined) ??
+      (typeof isInactive === "boolean" ? !isInactive : undefined);
+    const resolvedStatus = rawStatus === undefined ? undefined : normalizeMemberStatus(rawStatus);
 
-    const fullName       = `${firstName} ${lastName}`.trim();
-    const resolvedId     = memberId || studentId || email || fullName;
-    const resolvedStatus = normalizeMemberStatus(status || membershipStatus);
+    if (!firstName || !lastName) {
+      // Accept lightweight status updates from the registration system while
+      // requiring complete profile data when creating a new member.
+      if (!resolvedId || resolvedStatus === undefined) {
+        return res.status(400).json({
+          success: false,
+          message: "firstName and lastName are required for a new member; status-only updates require memberId (or studentId) and a status.",
+        });
+      }
+
+      const member = await Member.findOneAndUpdate(
+        { $or: [{ memberId: resolvedId }, ...(email ? [{ email: email.toLowerCase().trim() }] : [])] },
+        { $set: { status: resolvedStatus, membershipStatus: resolvedStatus, lastSyncedAt: new Date() } },
+        { new: true }
+      );
+
+      if (!member) {
+        return res.status(404).json({ success: false, message: "Member not found for status update." });
+      }
+
+      await writeLog({
+        system, method: "POST", endpoint: "/api/integration/push-member",
+        action: `Member status synced: ${member.fullName} [status: ${resolvedStatus}]`,
+        level: "info", statusCode: 200,
+        meta: { memberId: resolvedId, status: resolvedStatus }, ip: req.ip,
+      });
+
+      system.lastSeen = new Date();
+      system.status = "online";
+      await system.save({ validateBeforeSave: false });
+
+      return res.status(200).json({
+        success: true,
+        message: `Member status for "${member.fullName}" updated.`,
+        received: { memberId: member.memberId, status: resolvedStatus },
+      });
+    }
 
     // Build a flexible OR filter so we find the record whether the
     // teammate used memberId, studentId, email, or fullName as the key.
@@ -215,8 +254,10 @@ const pushMember = async (req, res) => {
       ...(year     && { year: String(year) }),
       organization:     organization || organizationId || "",
       organizationId:   organizationId || organization || "",
-      status:           resolvedStatus,
-      membershipStatus: resolvedStatus,
+      ...(resolvedStatus !== undefined && {
+        status:           resolvedStatus,
+        membershipStatus: resolvedStatus,
+      }),
       sourceSystem:     system._id,
       systemName:       system.name,
       lastSyncedAt:     new Date(),
