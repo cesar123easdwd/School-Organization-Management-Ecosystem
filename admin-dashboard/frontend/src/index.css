@@ -125,11 +125,12 @@ body {
 }
 
 .sidebar-logo-name {
-  font-size: 13px;
+  font-size: 11.5px;
   font-weight: 700;
   color: var(--text-primary);
-  letter-spacing: 0.3px;
-  line-height: 1.2;
+  letter-spacing: 0.2px;
+  line-height: 1.3;
+  white-space: normal;
 }
 
 .sidebar-logo-sub {

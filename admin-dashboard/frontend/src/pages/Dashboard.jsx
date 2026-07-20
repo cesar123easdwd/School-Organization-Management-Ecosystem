@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   AreaChart, Area,
-  BarChart, Bar,
   PieChart, Pie, Cell, Tooltip as PieTooltip, Legend,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
@@ -9,20 +8,9 @@ import useAuth from '../hooks/useAuth';
 import dashboardService from '../services/dashboardService';
 
 /* ── Constants ────────────────────────────────────────────────────── */
-const PIE_COLORS   = { Paid: '#22c55e', Unpaid: '#ef4444', Waived: '#f59e0b' };
-const LEVEL_COLORS = { success: '#22c55e', info: '#7f1416', warning: '#f59e0b', error: '#ef4444' };
+const PIE_COLORS = { Paid: '#22c55e', Unpaid: '#ef4444', Waived: '#f59e0b' };
 const POLL_INTERVAL_MS = 30_000;
 
-const timeAgo = (dateStr) => {
-  if (!dateStr) return '—';
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins  = Math.floor(diff / 60000);
-  if (mins < 1)  return 'just now';
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24)  return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
-};
 
 /* ── SVG Icon Set ─────────────────────────────────────────────────── */
 const IconUsers = () => (
@@ -126,7 +114,6 @@ const Dashboard = () => {
   const [stats,       setStats]       = useState({});
   const [monthly,     setMonthly]     = useState([]);
   const [sanctionPie, setSanctionPie] = useState([]);
-  const [logLevels,   setLogLevels]   = useState([]);
   const [lastUpdated, setLastUpdated] = useState(null);
 
   const load = useCallback(async (silent = false) => {
@@ -137,7 +124,6 @@ const Dashboard = () => {
         setStats(data.stats                   ?? {});
         setMonthly(data.charts?.monthly        ?? []);
         setSanctionPie(data.charts?.sanctionPie ?? []);
-        setLogLevels(data.charts?.logLevels    ?? []);
         setLastUpdated(new Date());
       }
     } catch (err) {
@@ -282,41 +268,6 @@ const Dashboard = () => {
             </ResponsiveContainer>
           )}
         </ChartCard>
-      </div>
-
-      {/* ── Charts Row 2: Bar ────────────────────────────────────── */}
-      <div className="dashboard-charts-subrow">
-
-        {/* Log Level Bar Chart */}
-        <ChartCard title="Integration Activity" subtitle="API calls by severity level">
-          {logLevels.length === 0 ? (
-            <div className="empty-state" style={{ height: 200 }}>
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.3 }}>
-                <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
-                <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
-              </svg>
-              <span>No integration activity yet.</span>
-            </div>
-          ) : (
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={logLevels} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(15,23,42,0.08)" vertical={false} />
-                <XAxis dataKey="level" tick={{ fill: '#64748b', fontSize: 11, textTransform: 'capitalize' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: '#64748b', fontSize: 11 }} axisLine={false} tickLine={false} />
-                <Tooltip
-                  contentStyle={{ background: '#ffffff', border: '1px solid rgba(15,23,42,0.12)', borderRadius: '10px', fontSize: '12px', color: '#1f2937' }}
-                  cursor={{ fill: 'rgba(127,20,22,0.05)' }}
-                />
-                <Bar dataKey="count" name="API Calls" radius={[6, 6, 0, 0]}>
-                  {logLevels.map((entry) => (
-                    <Cell key={entry.level} fill={LEVEL_COLORS[entry.level] || '#7f1416'} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </ChartCard>
-
       </div>
 
       {/* Pulse + skeleton animations */}

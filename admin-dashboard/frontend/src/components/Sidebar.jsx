@@ -95,15 +95,22 @@ const Sidebar = () => {
     <aside className="sidebar" aria-label="Main navigation">
 
       {/* Logo / Branding */}
-      <div className="sidebar-logo">
-        <div className="sidebar-logo-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
-            <path d="M6 12v5c3 3 9 3 12 0v-5"/>
-          </svg>
-        </div>
+      <div className="sidebar-logo" style={{ gap: '10px', alignItems: 'center' }}>
+        <img
+          src="/seait-logo.png"
+          alt="SEAIT Logo"
+          style={{
+            width: '44px',
+            height: '44px',
+            objectFit: 'contain',
+            flexShrink: 0,
+            filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.25))',
+          }}
+        />
         <div className="sidebar-logo-text">
-          <span className="sidebar-logo-name">SchoolOrg</span>
+          <span className="sidebar-logo-name" style={{ fontSize: '0.72rem', lineHeight: '1.25', whiteSpace: 'normal' }}>
+            School of Engineering, Architecture &amp; IT
+          </span>
           <span className="sidebar-logo-sub">Admin Dashboard</span>
         </div>
       </div>
