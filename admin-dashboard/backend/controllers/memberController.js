@@ -74,14 +74,17 @@ const getMembers = async (req, res) => {
         return totals;
       }
 
-      const keys = [
+      // Teammate records often contain the same ID/name in multiple fields
+      // (for example, both memberId and studentId). Count a sanction once per
+      // member, not once per matching field.
+      const keys = [...new Set([
         transaction.memberId,
         transaction.studentId,
         transaction.memberName,
         transaction.name,
       ]
         .map(normalizeLookupKey)
-        .filter(Boolean);
+        .filter(Boolean))];
 
       keys.forEach((key) => {
         totals.set(key, (totals.get(key) || 0) + amount);
